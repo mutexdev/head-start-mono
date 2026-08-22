@@ -65,7 +65,7 @@ Triggers:
 
 ### TripEngine (pure, unit-tested)
 Input: trip doc, new position, now, optional fresh ETA. Output: patch to trip + list of pushes.
-- ETA smoothing: reject a Mapbox ETA if it changes by more than max(120 s, 25 %) within 15 s of the last one unless two consecutive readings agree.
+- ETA smoothing: reject a fresh ETA if it changes by more than max(120 s, 25 %) within 15 s of the last one unless two consecutive readings agree.
 - Movement verification: if `now − startedAt ≥ 3 min` and no position ≥ 150 m from the start position → set `alerts.didYouLeave`, push driver "Did you leave? Tap to confirm or cancel". Receiver's **started** push is sent at `startTrip` regardless (user decision: started is sent immediately; didYouLeave only prompts the driver).
 - Alert ladder (each fires once unless re-armed):
   - `tenMin`: etaSec ≤ 600.

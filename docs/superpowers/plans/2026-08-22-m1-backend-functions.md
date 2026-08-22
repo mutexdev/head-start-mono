@@ -1022,7 +1022,8 @@ git commit -m "feat(functions): add pure TripEngine alert ladder"
 ### Task 7: I/O adapters — Firestore, Google Routes, Push
 
 **Files:**
-- Create: `functions/src/io/firestore.ts`, `functions/src/io/mapbox.ts`, `functions/src/io/push.ts`
+- Create: `functions/src/io/firestore.ts`, `functions/src/io/routing.ts`, `functions/src/io/push.ts`
+- Test: `functions/test/io/routing.test.ts`
 
 - [ ] **Step 1: Firestore helpers**
 
