@@ -109,7 +109,7 @@ Phases: `far` → `near` → `ended`.
 
 ## 8. Pairing & privacy
 - Sign-in: Firebase phone OTP. Display name set once.
-- Pairing: `createPair` → 6-char code shown as text, share link (`thesync://pair/{code}` + universal link), and QR. NFC: Android writes/reads NDEF with the link; iOS reads via Core NFC. `acceptPair` completes.
+- Pairing: `createPair` → 6-char code shown as text, share link (`headstart://pair/{code}` + universal link), and QR. NFC: Android writes/reads NDEF with the link; iOS reads via Core NFC. `acceptPair` completes.
 - Trip-scoped sharing only; "Sharing active" banner on both sides; either can end a trip or revoke the pair.
 - Positions TTL 30 days; `deleteAccount` wipes user, pairs, spots, trips where member.
 - No "location active" nags beyond the OS-required indicator/FGS notification.
