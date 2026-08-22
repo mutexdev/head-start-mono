@@ -1,0 +1,37 @@
+# Generated design canvas (rebuild with design/README.md instructions)
+design/headstart-app-design.html
+
+# Node
+node_modules/
+functions/lib/
+*.log
+
+# Firebase
+.firebase/
+*-debug.log
+.runtimeconfig.json
+
+# Secrets — never commit
+.env
+.env.*
+google-services.json
+GoogleService-Info.plist
+serviceAccountKey.json
+
+# Android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+.idea/
+*.iml
+
+# iOS
+ios/build/
+ios/DerivedData/
+*.xcuserstate
+xcuserdata/
+ios/Pods/
+
+# OS
+.DS_Store
