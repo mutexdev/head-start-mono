@@ -7,7 +7,7 @@ A driver picks someone up from a fixed spot (e.g. partner from office). The rece
 - Multi-user from day one (phone OTP sign-in, pair via invite code/link).
 - Native clients: iOS (Swift/SwiftUI), Android (Kotlin/Jetpack Compose).
 - Backend: Firebase — Auth (phone), Firestore, Cloud Functions (TypeScript), FCM, Scheduled Functions.
-- Routing: Mapbox Directions API (traffic-aware), called only from Cloud Functions.
+- Routing: Google Routes API (Compute Routes v2, traffic-aware; 10k free calls/month) behind a `RoutingProvider` interface in Cloud Functions, so it can be swapped for self-hosted Valhalla later. **iOS drivers compute ETA on-device with MapKit `MKDirections.calculateETA` (free, traffic-aware) and attach `etaSec` to each position; the server skips its routing call when present.** Android drivers rely on the server call.
 - Full feature set is v1, built in four ordered milestones (M1–M4). M1 is real-drive testable.
 
 ## 1. Architecture
@@ -17,7 +17,7 @@ Thin native clients; one server-side `TripEngine` makes all alert decisions so b
 iOS / Android app ──(Auth, Firestore writes, callables)──▶ Firebase
                                                          ├─ Firestore (state, realtime listeners)
                                                          ├─ Cloud Functions: callables + onPositionWrite + schedulers
-                                                         │     └─ Mapbox Directions (ETA, polyline)
+                                                         │     └─ RoutingProvider → Google Routes API (ETA, polyline); bypassed when client sends etaSec
                                                          └─ FCM → APNs / Android (alerts, Live Activity pushes)
 ```
 
@@ -39,9 +39,9 @@ trips/{tripId}     pairId, driverUid, receiverUid, spotId,
                    lastPos: { lat, lng, accuracyM, speedMps, ts },
                    alerts: { started, tenMin, leadTime, arrived, didYouLeave: bool, slipCount: number,
                              lastSlipEtaSec?: number },
-                   fuzzy: bool, neededBy?: timestamp, lastMapboxCallAt?, mapboxCalls: number,
+                   fuzzy: bool, neededBy?: timestamp, lastRoutingCallAt?, routingCalls: number,
                    phaseHint: far|near, leadTimeMin (snapshot), receiverView: { etaSeconds, progressPct, lastPos? }
-trips/{tripId}/positions/{autoId}   lat, lng, accuracyM, speedMps, ts, expireAt (TTL 30 days)
+trips/{tripId}/positions/{autoId}   lat, lng, accuracyM, speedMps, ts, etaSec? (on-device ETA), expireAt (TTL 30 days)
 trips/{tripId}/replies/{autoId}     fromUid, kind: fiveMore|takeYourTime|atSpot|runningLate|custom, text?, ts
 schedules/{id}     pairId, spotId, driverUid, receiverUid, days: [0-6], timeLocal "HH:mm", tz, enabled, lastFiredDate?
 ```
@@ -51,17 +51,17 @@ Security rules: a user may read/write only docs where they are a pair member; tr
 Callables (all verify pair membership):
 - `createPair` → inviteCode; `acceptPair(code)`; `revokePair(pairId)`.
 - `upsertSpot`, `deleteSpot`. Either pair member can edit a spot; a trip snapshots `leadTimeMin` at start.
-- `startTrip(spotId, fuzzy?)`: creates trip `driving`, calls Mapbox once, stores eta/polyline/bands, pushes **started** to receiver, returns `{tripId, bands, etaSeconds}`.
+- `startTrip(spotId, fuzzy?)`: creates trip `driving`, calls the routing provider once, stores eta/polyline/bands, pushes **started** to receiver, returns `{tripId, bands, etaSeconds}`.
 - `armTrip(spotId)` (receiver): creates trip `armed`, pushes driver "X is waiting — tap when you leave". `startTrip` on an armed trip transitions it to `driving`.
 - `endTrip(tripId, reason: arrived|cancelled)`.
 - `sendReply(tripId, kind, text?)`, `setRunningLate(tripId, extraMin)`, `setNeededBy(tripId, ts)`.
 - `registerPushToken`, `registerLiveActivityToken`, `deleteAccount`.
 
 Triggers:
-- `onPositionWrite` (trips/{id}/positions/{pid}): runs `TripEngine.step(trip, position, now)` → decides whether to call Mapbox (throttle: 60 s if ETA > 10 min, 30 s if 5–10 min, 15 s if < 5 min; also immediately on first near-phase position), updates `trip.eta`/`lastPos`, emits alerts, and emits a Live Activity update if ETA changed by ≥ 60 s.
+- `onPositionWrite` (trips/{id}/positions/{pid}): runs `TripEngine.step(trip, position, now)` → decides whether to call the routing provider (skipped if the position carries `etaSec`) (throttle: 60 s if ETA > 10 min, 30 s if 5–10 min, 15 s if < 5 min; also immediately on first near-phase position), updates `trip.eta`/`lastPos`, emits alerts, and emits a Live Activity update if ETA changed by ≥ 60 s.
 - `onTripLost` (scheduled every minute): trips in `driving` with `lastPos.ts` older than 5 min → state `lost`, push both sides "Connection lost". Trips older than 3 h → `timeout`. Trips `armed` for > 15 min past `neededBy` (or 15 min after arming when no `neededBy`) → push receiver "No trip started yet" (once).
 - `onSchedule` (scheduled every minute): for each enabled schedule matching today/time in its tz and not yet fired today, push driver an actionable notification "Pickup {name} at {time} — Start trip?" (action = startTrip). No silent auto-tracking.
-- `onLeaveBy` (inside `onSchedule` tick): trips `armed` with `neededBy`: compute Mapbox ETA from driver's last known position (if driver app shares a coarse position while armed; else skip) and push "Leave in N min to arrive by {time}" once when leave-by ≤ 5 min away.
+- `onLeaveBy` (inside `onSchedule` tick): trips `armed` with `neededBy`: compute routing ETA from driver's last known position (if driver app shares a coarse position while armed; else skip) and push "Leave in N min to arrive by {time}" once when leave-by ≤ 5 min away.
 
 ### TripEngine (pure, unit-tested)
 Input: trip doc, new position, now, optional fresh ETA. Output: patch to trip + list of pushes.
@@ -73,7 +73,7 @@ Input: trip doc, new position, now, optional fresh ETA. Output: patch to trip + 
   - `slip`: after `tenMin` fired, if new etaSec − lastSlipEtaSec (or eta at tenMin time) ≥ 120 → push "Traffic — now {m} min, stay inside", `slipCount++`. If `leadTime` had fired and etaSec > (leadTimeMin+2)×60 → re-arm `leadTime`.
   - `arrived`: within `spot.radiusM` and speed < 2 m/s for ≥ 20 s, or `endTrip(arrived)`. Push "{driver} has arrived". End trip.
 - Low battery: if `users/{driver}.lowBattery`, mark `eta.approximate = true`; pushes append "(approx.)".
-- Mapbox failure: fallback ETA = remaining polyline distance / max(avg speed last 2 min, 8 m/s), `approximate = true`.
+- Routing failure: fallback ETA = remaining polyline distance / max(avg speed last 2 min, 8 m/s), `approximate = true`.
 
 Push copy lives in one `messages.ts` file; all pushes are idempotent via transactional updates on `trip.alerts`.
 
@@ -118,11 +118,11 @@ Phases: `far` → `near` → `ended`.
 - Invalid FCM token → prune; in-app "Notifications not working" check (test push button).
 - Offline driver → local buffer, ordered replay; server `lost` after 5 min; resumes to `driving` if positions return before timeout.
 - Duplicate taps → `startTrip` rejects if an active trip exists for the pair (returns existing).
-- Mapbox quota/outage → fallback ETA (approximate) + Cloud Logging alert.
+- Routing quota/outage → fallback ETA (approximate) + Cloud Logging alert.
 - All callables return typed error codes: `not-paired`, `trip-active`, `spot-not-found`, `rate-limited`.
 
 ## 10. Testing
-- Functions: Jest unit tests for `TripEngine` (table-driven: ladder order, hysteresis, re-arm, slip, low battery, movement check, fallback ETA). Firestore emulator integration tests for callables + rules. Mapbox mocked.
+- Functions: Jest unit tests for `TripEngine` (table-driven: ladder order, hysteresis, re-arm, slip, low battery, movement check, fallback ETA). Firestore emulator integration tests for callables + rules. Routing provider stubbed.
 - iOS: XCTest for `TrackingPhaseController` and offline buffer; GPX simulated drives for UI tests.
 - Android: JUnit for the same controller; emulator route playback.
 - Per-milestone manual real-drive checklist (documented in `docs/testing/real-drive-checklist.md`).

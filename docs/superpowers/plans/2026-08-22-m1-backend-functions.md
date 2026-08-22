@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the Firebase backend for milestone M1: pairing, spots, trip lifecycle, the pure `TripEngine` alert ladder, Mapbox ETA with throttling/fallback, FCM pushes, and the lost/timeout scheduler — fully unit-tested and deployable.
+**Goal:** Build the Firebase backend for milestone M1: pairing, spots, trip lifecycle, the pure `TripEngine` alert ladder, route ETA (Google Routes API behind a `RoutingProvider` interface, with optional on-device ETA from the driver's phone) with throttling/fallback, FCM pushes, and the lost/timeout scheduler — fully unit-tested and deployable.
 
 **Architecture:** A single Cloud Functions (TypeScript, Node 20, firebase-functions v2) project. All alert decisions live in a pure, side-effect-free `TripEngine.step()` that takes (trip, position, now, freshEta?) and returns (patch, pushes, wantsEta). Thin wrappers (Firestore trigger, callables, scheduler) do I/O around it. Clients only ever write `trips/{id}/positions/*`; everything else goes through callables.
 
-**Tech Stack:** Firebase (Auth phone, Firestore, Functions v2, FCM), TypeScript 5, Jest + ts-jest, Mapbox Directions API v5, firebase-functions-test not used (engine is pure; callables tested against the Firestore emulator).
+**Tech Stack:** Firebase (Auth phone, Firestore, Functions v2, FCM), TypeScript 5, Jest + ts-jest, Google Routes API (Compute Routes v2) behind a swappable `RoutingProvider`, firebase-functions-test not used (engine is pure; callables tested against the Firestore emulator).
 
 **Spec:** `docs/superpowers/specs/2026-08-22-the-sync-design.md`
 
@@ -32,7 +32,7 @@ functions/
       tripEngine.ts           step(): alert ladder + state transitions (pure)
     io/
       firestore.ts            admin init + typed collection helpers
-      mapbox.ts               directions(from, to) -> {etaSec, distanceM, polyline}
+      routing.ts              RoutingProvider interface; googleRoutes impl; stub for tests; directions(from,to)
       push.ts                 sendToUser(uid, msg), prune invalid tokens
     callables/
       pairs.ts                createPair, acceptPair, revokePair
@@ -44,6 +44,7 @@ functions/
       housekeeping.ts         every-minute: lost / timeout / armed no-show
     index.ts                  exports
   test/
+    io/routing.test.ts
     engine/eta.test.ts
     engine/geo.test.ts
     engine/tripEngine.test.ts
@@ -227,6 +228,8 @@ export interface Position {
   accuracyM: number;
   speedMps: number;
   ts: number; // epoch ms
+  /** Optional ETA computed on-device (e.g. iOS MapKit). When present the server skips its routing call. */
+  etaSec?: number;
 }
 
 export interface Eta {
@@ -275,8 +278,8 @@ export interface TripDoc {
   alerts: Alerts;
   fuzzy: boolean;
   neededBy?: number;
-  lastMapboxCallAt?: number;
-  mapboxCalls: number;
+  lastRoutingCallAt?: number;
+  routingCalls: number;
   phaseHint: Phase;
   receiverView?: ReceiverView;
   lostNotified?: boolean;
@@ -407,7 +410,7 @@ export function haversineMeters(a: LatLng, b: LatLng): number {
   return 2 * R * Math.asin(Math.sqrt(s));
 }
 
-/** Decodes a Google/Mapbox encoded polyline (precision 5). */
+/** Decodes a Google/Google Routes encoded polyline (precision 5). */
 export function decodePolyline(encoded: string): LatLng[] {
   const pts: LatLng[] = [];
   let index = 0, lat = 0, lng = 0;
@@ -737,7 +740,7 @@ function trip(over: Partial<TripDoc> = {}): TripDoc {
     eta: { seconds: 1200, updatedAt: T0, approximate: false },
     routeDistanceM: 11_000, bands: { far: 6600, near: 3850, lead: 2750 },
     lastPos: { lat: 0.1, lng: 0, accuracyM: 10, speedMps: 0, ts: T0 },
-    alerts: initialAlerts(), fuzzy: false, mapboxCalls: 1, phaseHint: 'far', lastMapboxCallAt: T0,
+    alerts: initialAlerts(), fuzzy: false, routingCalls: 1, phaseHint: 'far', lastRoutingCallAt: T0,
     ...over,
   };
 }
@@ -862,7 +865,7 @@ export interface EngineInput {
   trip: TripDoc;
   position: Position;
   nowMs: number;
-  /** ETA returned by Mapbox (or fallback) for this step, if the caller fetched one */
+  /** ETA returned by Google Routes (or fallback) for this step, if the caller fetched one */
   freshEtaSec?: number;
   freshEtaApproximate?: boolean;
   driverName: string;
@@ -937,7 +940,7 @@ export function step(input: EngineInput): EngineOutput {
     patch.eta = eta;
     patch.pendingEtaSec = s.pending ?? null;
   } else {
-    wantsEta = shouldPollEta(trip.lastMapboxCallAt, trip.eta?.seconds ?? 0, nowMs, phase, justEnteredNear);
+    wantsEta = shouldPollEta(trip.lastRoutingCallAt, trip.eta?.seconds ?? 0, nowMs, phase, justEnteredNear);
   }
 
   // 5. Alert ladder (only when we have a fresh, accepted ETA this step).
@@ -1016,7 +1019,7 @@ git commit -m "feat(functions): add pure TripEngine alert ladder"
 
 ---
 
-### Task 7: I/O adapters — Firestore, Mapbox, Push
+### Task 7: I/O adapters — Firestore, Google Routes, Push
 
 **Files:**
 - Create: `functions/src/io/firestore.ts`, `functions/src/io/mapbox.ts`, `functions/src/io/push.ts`
@@ -1050,29 +1053,92 @@ export async function getOrThrow<T>(ref: DocumentReference<T>, code: string): Pr
 export const now = () => Date.now();
 ```
 
-- [ ] **Step 2: Mapbox client**
+- [ ] **Step 2: Routing provider (Google Routes API default, swappable)**
 
 ```ts
-// functions/src/io/mapbox.ts
-import { defineSecret } from 'firebase-functions/params';
+// functions/src/io/routing.ts
+import { defineSecret, defineString } from 'firebase-functions/params';
 import { LatLng } from '../types';
 
-export const MAPBOX_TOKEN = defineSecret('MAPBOX_TOKEN');
+export const GOOGLE_ROUTES_KEY = defineSecret('GOOGLE_ROUTES_KEY');
+/** 'google' (default) | 'stub'. Add 'valhalla' etc. later by implementing RoutingProvider. */
+export const ROUTING_PROVIDER = defineString('ROUTING_PROVIDER', { default: 'google' });
 
 export interface RouteResult { etaSec: number; distanceM: number; polyline: string }
+export interface RoutingProvider { directions(from: LatLng, to: LatLng): Promise<RouteResult> }
 
-export async function directions(from: LatLng, to: LatLng, token: string = MAPBOX_TOKEN.value()): Promise<RouteResult> {
-  const coords = `${from.lng},${from.lat};${to.lng},${to.lat}`;
-  const url = `https://api.mapbox.com/directions/v5/mapbox/driving-traffic/${coords}` +
-    `?overview=full&geometries=polyline&access_token=${encodeURIComponent(token)}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`mapbox ${res.status}`);
-  const json = (await res.json()) as { routes?: { duration: number; distance: number; geometry: string }[] };
-  const r = json.routes?.[0];
-  if (!r) throw new Error('mapbox no-route');
-  return { etaSec: Math.round(r.duration), distanceM: Math.round(r.distance), polyline: r.geometry };
+/** Google Routes API — Compute Routes v2, traffic-aware. 10k free calls/month on the Essentials SKU. */
+export class GoogleRoutesProvider implements RoutingProvider {
+  constructor(private readonly apiKey: string) {}
+  async directions(from: LatLng, to: LatLng): Promise<RouteResult> {
+    const res = await fetch('https://routes.googleapis.com/directions/v2:computeRoutes', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': this.apiKey,
+        'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline',
+      },
+      body: JSON.stringify({
+        origin: { location: { latLng: { latitude: from.lat, longitude: from.lng } } },
+        destination: { location: { latLng: { latitude: to.lat, longitude: to.lng } } },
+        travelMode: 'DRIVE',
+        routingPreference: 'TRAFFIC_AWARE',
+        polylineEncoding: 'ENCODED_POLYLINE',
+      }),
+    });
+    if (!res.ok) throw new Error(`google-routes ${res.status}`);
+    const json = (await res.json()) as { routes?: { duration: string; distanceMeters: number; polyline: { encodedPolyline: string } }[] };
+    const r = json.routes?.[0];
+    if (!r) throw new Error('google-routes no-route');
+    return { etaSec: parseDurationSec(r.duration), distanceM: Math.round(r.distanceMeters), polyline: r.polyline.encodedPolyline };
+  }
 }
+
+/** Google returns durations as "1234s" (or "1234.5s"). */
+export function parseDurationSec(d: string): number {
+  const n = Number(String(d).replace(/s$/, ''));
+  if (!Number.isFinite(n)) throw new Error(`bad duration ${d}`);
+  return Math.round(n);
+}
+
+/** Test/emulator stub: fixed ETA from ROUTING_STUB_ETA_SEC, distance = eta * 10 m/s. */
+export class StubProvider implements RoutingProvider {
+  constructor(private readonly etaSec: number) {}
+  async directions(): Promise<RouteResult> {
+    return { etaSec: this.etaSec, distanceM: this.etaSec * 10, polyline: '??_ibE??_ibE' };
+  }
+}
+
+export function provider(): RoutingProvider {
+  if (process.env.ROUTING_STUB_ETA_SEC) return new StubProvider(Number(process.env.ROUTING_STUB_ETA_SEC));
+  switch (ROUTING_PROVIDER.value()) {
+    case 'google': return new GoogleRoutesProvider(GOOGLE_ROUTES_KEY.value());
+    default: throw new Error(`unknown ROUTING_PROVIDER ${ROUTING_PROVIDER.value()}`);
+  }
+}
+
+export const directions = (from: LatLng, to: LatLng) => provider().directions(from, to);
 ```
+
+Test: `functions/test/io/routing.test.ts`
+```ts
+import { parseDurationSec, StubProvider } from '../../src/io/routing';
+
+describe('routing', () => {
+  it('parses Google duration strings', () => {
+    expect(parseDurationSec('1234s')).toBe(1234);
+    expect(parseDurationSec('1234.6s')).toBe(1235);
+    expect(() => parseDurationSec('abc')).toThrow();
+  });
+  it('stub returns fixed eta', async () => {
+    const r = await new StubProvider(170).directions({ lat: 0, lng: 0 }, { lat: 1, lng: 1 });
+    expect(r.etaSec).toBe(170);
+    expect(r.distanceM).toBe(1700);
+  });
+});
+```
+
+Run: `cd functions && npx jest test/io/routing.test.ts` → PASS (2 tests).
 
 - [ ] **Step 3: Push sender**
 
@@ -1122,8 +1188,8 @@ Expected: exit 0. (Node 20 has global `fetch`; if tsc complains, add `"DOM"` to 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add functions/src/io
-git commit -m "feat(functions): add Firestore, Mapbox and FCM adapters"
+git add functions/src/io functions/test/io
+git commit -m "feat(functions): add Firestore, routing provider (Google Routes) and FCM adapters"
 ```
 
 ---
@@ -1312,7 +1378,7 @@ git commit -m "feat(functions): add pair, spot and token callables"
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions';
 import { trips, spots, users, replies, now } from '../io/firestore';
-import { directions, MAPBOX_TOKEN } from '../io/mapbox';
+import { directions, GOOGLE_ROUTES_KEY, ROUTING_PROVIDER } from '../io/routing';
 import { sendPush } from '../io/push';
 import { uidOf, requireActivePair, otherMember } from './auth';
 import { bandsFor, fallbackEtaSec } from '../engine/eta';
@@ -1329,7 +1395,7 @@ async function nameOf(uid: string): Promise<string> {
   return (await users().doc(uid).get()).data()?.displayName ?? 'Your driver';
 }
 
-export const startTrip = onCall({ secrets: [MAPBOX_TOKEN] }, async (req) => {
+export const startTrip = onCall({ secrets: [GOOGLE_ROUTES_KEY] }, async (req) => {
   const uid = uidOf(req);
   const spotId = String(req.data?.spotId ?? '');
   const from = { lat: Number(req.data?.lat), lng: Number(req.data?.lng) };
@@ -1348,10 +1414,13 @@ export const startTrip = onCall({ secrets: [MAPBOX_TOKEN] }, async (req) => {
   const t = now();
   let etaSec: number, distanceM: number, polyline: string | undefined, approximate = false;
   try {
+    // Always fetch the route at start (we need the polyline for bands), even if the client sent its own ETA.
     const r = await directions(from, spot);
     etaSec = r.etaSec; distanceM = r.distanceM; polyline = r.polyline;
+    const clientEta = Number(req.data?.etaSec);
+    if (Number.isFinite(clientEta) && clientEta > 0) etaSec = Math.round(clientEta); // trust on-device (MapKit) ETA when present
   } catch (e) {
-    logger.error('mapbox failed at start', e);
+    logger.error('routing failed at start', { provider: ROUTING_PROVIDER.value(), err: String(e) });
     distanceM = haversineMeters(from, spot) * 1.3;
     etaSec = fallbackEtaSec(distanceM, 10);
     approximate = true;
@@ -1365,7 +1434,7 @@ export const startTrip = onCall({ secrets: [MAPBOX_TOKEN] }, async (req) => {
     leadTimeMin: spot.leadTimeMin, state: 'driving', createdAt: t, startedAt: t, startPos: from,
     eta: { seconds: etaSec, updatedAt: t, approximate }, routePolyline: polyline, routeDistanceM: Math.round(distanceM),
     bands, alerts: { ...initialAlerts(), started: true }, fuzzy: !!req.data?.fuzzy,
-    lastMapboxCallAt: t, mapboxCalls: approximate ? 0 : 1, phaseHint: 'far',
+    lastRoutingCallAt: t, routingCalls: approximate ? 0 : 1, phaseHint: 'far',
     receiverView: { etaSeconds: etaSec, progressPct: 0, ...(req.data?.fuzzy ? {} : { lastPos: from }) },
   };
 
@@ -1413,7 +1482,7 @@ export const armTrip = onCall(async (req) => {
     pairId: spot.pairId, driverUid, receiverUid: uid, spotId,
     spot: { lat: spot.lat, lng: spot.lng, radiusM: spot.radiusM, name: spot.name },
     leadTimeMin: spot.leadTimeMin, state: 'armed', createdAt: t, alerts: initialAlerts(), fuzzy: false,
-    mapboxCalls: 0, phaseHint: 'far', ...(neededBy ? { neededBy } : {}),
+    routingCalls: 0, phaseHint: 'far', ...(neededBy ? { neededBy } : {}),
   };
   const ref = await trips().add(doc);
   await sendPush(msg.armed(driverUid, await nameOf(uid), spot.name));
@@ -1474,7 +1543,7 @@ import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { logger } from 'firebase-functions';
 import { FieldValue } from 'firebase-admin/firestore';
 import { db, trips, users } from '../io/firestore';
-import { directions, MAPBOX_TOKEN } from '../io/mapbox';
+import { directions, GOOGLE_ROUTES_KEY, ROUTING_PROVIDER } from '../io/routing';
 import { sendAll } from '../io/push';
 import { step, EnginePatch } from '../engine/tripEngine';
 import { fallbackEtaSec } from '../engine/eta';
@@ -1495,7 +1564,7 @@ function toUpdate(p: EnginePatch, extra: Record<string, unknown> = {}): Record<s
 }
 
 export const onPositionWrite = onDocumentCreated(
-  { document: 'trips/{tripId}/positions/{posId}', secrets: [MAPBOX_TOKEN] },
+  { document: 'trips/{tripId}/positions/{posId}', secrets: [GOOGLE_ROUTES_KEY] },
   async (event) => {
     const tripId = event.params.tripId;
     const position = event.data?.data() as Position | undefined;
@@ -1515,16 +1584,21 @@ export const onPositionWrite = onDocumentCreated(
     let out = step({ trip, position, nowMs, driverName, pendingEtaSec: trip.pendingEtaSec });
     let extra: Record<string, unknown> = {};
 
-    if (out.wantsEta) {
+    // On-device ETA (iOS MapKit) present → use it, no routing call at all.
+    const clientEta = position.etaSec;
+    if (clientEta !== undefined && Number.isFinite(clientEta) && clientEta > 0) {
+      out = step({ trip, position, nowMs, driverName, pendingEtaSec: trip.pendingEtaSec, freshEtaSec: Math.round(clientEta), freshEtaApproximate: !!driver?.lowBattery });
+      extra = { lastRoutingCallAt: nowMs }; // counts as a poll for throttling purposes
+    } else if (out.wantsEta) {
       let freshEtaSec: number, approximate = false;
       try {
         const r = await directions(position, trip.spot);
         freshEtaSec = r.etaSec;
-        extra = { lastMapboxCallAt: nowMs, mapboxCalls: FieldValue.increment(1) };
+        extra = { lastRoutingCallAt: nowMs, routingCalls: FieldValue.increment(1) };
         // keep polyline fresh so remaining-distance fallback stays meaningful
         extra.routePolyline = r.polyline;
       } catch (e) {
-        logger.warn('mapbox failed; using fallback', { tripId, err: String(e) });
+        logger.warn('routing failed; using fallback', { tripId, err: String(e) });
         const remaining = trip.routePolyline
           ? polylineRemainingMeters(decodePolyline(trip.routePolyline), position)
           : haversineMeters(position, trip.spot) * 1.3;
@@ -1533,7 +1607,7 @@ export const onPositionWrite = onDocumentCreated(
           : position.speedMps;
         freshEtaSec = fallbackEtaSec(remaining, avgSpeed);
         approximate = true;
-        extra = { lastMapboxCallAt: nowMs };
+        extra = { lastRoutingCallAt: nowMs };
       }
       if (driver?.lowBattery) approximate = true;
       out = step({ trip, position, nowMs, driverName, pendingEtaSec: trip.pendingEtaSec, freshEtaSec, freshEtaApproximate: approximate });
@@ -1568,7 +1642,7 @@ Run: `cd functions && npm run build` → exit 0.
 
 ```bash
 git add functions/src/triggers/onPositionWrite.ts
-git commit -m "feat(functions): add position trigger wiring TripEngine to Mapbox and FCM"
+git commit -m "feat(functions): add position trigger wiring TripEngine to routing and FCM"
 ```
 
 ---
@@ -1705,7 +1779,8 @@ service cloud.firestore {
           && request.resource.data.keys().hasAll(['lat','lng','accuracyM','speedMps','ts','expireAt'])
           && request.resource.data.lat is number && request.resource.data.lng is number
           && request.resource.data.accuracyM is number && request.resource.data.speedMps is number
-          && request.resource.data.ts is number && request.resource.data.expireAt is timestamp;
+          && request.resource.data.ts is number && request.resource.data.expireAt is timestamp
+          && (!('etaSec' in request.resource.data) || request.resource.data.etaSec is number);
         allow read: if signedIn() && (
           uid() == get(/databases/$(db)/documents/trips/$(tripId)).data.driverUid ||
           uid() == get(/databases/$(db)/documents/trips/$(tripId)).data.receiverUid);
@@ -1731,7 +1806,7 @@ service cloud.firestore {
 - [ ] **Step 3: Build, run all unit tests**
 
 Run: `cd functions && npm run build && npm test`
-Expected: all suites PASS (geo 6, eta 13, messages 4, tripEngine 16).
+Expected: all suites PASS (geo 6, eta 13, messages 4, routing 2, tripEngine 16).
 
 - [ ] **Step 4: Commit**
 
@@ -1742,38 +1817,21 @@ git commit -m "feat(functions): export functions and add Firestore security rule
 
 ---
 
-### Task 13: Emulator integration test for startTrip → position → alerts
+### Task 13: Emulator integration test for trip → position → alerts
 
 **Files:**
 - Create: `functions/test/callables/trips.emulator.test.ts`
-- Modify: `functions/src/io/mapbox.ts` (test hook)
 
-- [ ] **Step 1: Add a test hook to Mapbox so the emulator never calls the network**
-
-Modify `functions/src/io/mapbox.ts`: replace the `directions` signature line and add the stub check at the top of the function body:
-
-```ts
-export async function directions(from: LatLng, to: LatLng, token?: string): Promise<RouteResult> {
-  if (process.env.MAPBOX_STUB_ETA_SEC) {
-    const etaSec = Number(process.env.MAPBOX_STUB_ETA_SEC);
-    return { etaSec, distanceM: etaSec * 10, polyline: '??_ibE??_ibE' };
-  }
-  const tok = token ?? MAPBOX_TOKEN.value();
-  const coords = `${from.lng},${from.lat};${to.lng},${to.lat}`;
-  const url = `https://api.mapbox.com/directions/v5/mapbox/driving-traffic/${coords}` +
-    `?overview=full&geometries=polyline&access_token=${encodeURIComponent(tok)}`;
-  // ... rest unchanged
-```
-
-- [ ] **Step 2: Write the emulator test (engine-through-Firestore, no callable transport)**
+- [ ] **Step 1: Write the emulator test (engine-through-Firestore, routing stubbed via env)**
 
 ```ts
 // functions/test/callables/trips.emulator.test.ts
 // Runs only under: npm run test:emu  (FIRESTORE_EMULATOR_HOST set by emulators:exec)
-process.env.GCLOUD_PROJECT = 'the-sync-test';
-process.env.MAPBOX_STUB_ETA_SEC = '170';
+process.env.GCLOUD_PROJECT = 'fin-e8358';
+process.env.ROUTING_STUB_ETA_SEC = '170';
 
 import { db, trips, users, pairs, spots } from '../../src/io/firestore';
+import { directions } from '../../src/io/routing';
 import { step } from '../../src/engine/tripEngine';
 import { initialAlerts, TripDoc } from '../../src/types';
 
@@ -1781,6 +1839,10 @@ const T0 = 1_700_000_000_000;
 
 describe('trip flow against the Firestore emulator', () => {
   beforeAll(() => { if (!process.env.FIRESTORE_EMULATOR_HOST) throw new Error('run via npm run test:emu'); });
+
+  it('routing is stubbed', async () => {
+    expect((await directions({ lat: 0, lng: 0 }, { lat: 1, lng: 1 })).etaSec).toBe(170);
+  });
 
   it('creates pair, spot, trip and applies an engine patch transactionally', async () => {
     await users().doc('d').set({ phone: '+1', displayName: 'Mostafi', platform: 'ios', fcmTokens: [], createdAt: T0 });
@@ -1794,7 +1856,7 @@ describe('trip flow against the Firestore emulator', () => {
       createdAt: T0, startedAt: T0, startPos: { lat: 0.1, lng: 0 },
       eta: { seconds: 1200, updatedAt: T0, approximate: false }, routeDistanceM: 11_000,
       bands: { far: 6600, near: 3850, lead: 2750 }, alerts: initialAlerts(), fuzzy: false,
-      mapboxCalls: 1, lastMapboxCallAt: T0, phaseHint: 'far',
+      routingCalls: 1, lastRoutingCallAt: T0, phaseHint: 'far',
     };
     const ref = await trips().add(trip);
 
@@ -1810,16 +1872,16 @@ describe('trip flow against the Firestore emulator', () => {
 });
 ```
 
-- [ ] **Step 3: Run**
+- [ ] **Step 2: Run**
 
 Run: `cd functions && npm run build && npm run test:emu`
-Expected: emulator starts, 1 test PASS, emulator stops. (Requires `npm i -g firebase-tools` and Java for the Firestore emulator.)
+Expected: emulator starts, 2 tests PASS, emulator stops. (Requires `npm i -g firebase-tools` and Java for the Firestore emulator.)
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
-git add functions/src/io/mapbox.ts functions/test/callables/trips.emulator.test.ts
-git commit -m "test(functions): add Firestore emulator integration test and Mapbox stub hook"
+git add functions/test/callables/trips.emulator.test.ts
+git commit -m "test(functions): add Firestore emulator integration test"
 ```
 
 ---
@@ -1838,8 +1900,9 @@ git commit -m "test(functions): add Firestore emulator integration test and Mapb
 1. `npm i -g firebase-tools && firebase login`
 2. `firebase projects:create fin-e8358` (or pick an id) and put it in `.firebaserc`.
 3. Enable in console: Authentication → Phone; Firestore (production mode); Cloud Messaging. Upload APNs key under Cloud Messaging → Apple app configuration (after the iOS app exists).
-4. Upgrade to Blaze (required for outbound Mapbox calls; free quotas still apply).
-5. `firebase functions:secrets:set MAPBOX_TOKEN` → paste a Mapbox token with Directions scope.
+4. Upgrade to Blaze (required for outbound HTTP calls; free quotas still apply).
+5. Google Routes API key: in Google Cloud console for project `fin-e8358` → APIs & Services → enable **Routes API** → Credentials → Create API key → restrict it to "Routes API" only. Then `firebase functions:secrets:set GOOGLE_ROUTES_KEY --project fin-e8358` and paste it. Free tier: 10,000 Compute Routes calls/month.
+6. Optional: `ROUTING_PROVIDER` param (default `google`) — future providers (self-hosted Valhalla, etc.) implement `RoutingProvider` in `src/io/routing.ts`.
 
 ## Dev loop
 - `npm test` — unit tests (pure engine).
@@ -1851,7 +1914,7 @@ git commit -m "test(functions): add Firestore emulator integration test and Mapb
 - Sign in with phone (Firebase Auth). Call `registerPushToken({token, platform, displayName})` after login and on token refresh.
 - Pair: `createPair()` → show `inviteCode`; other side `acceptPair({code})`.
 - Spots: `upsertSpot({pairId, name, lat, lng, leadTimeMin, radiusM, spotId?})`, `deleteSpot({spotId})`. Listen to `spots where pairId ==`.
-- Driver start: `startTrip({spotId, lat, lng, fuzzy?})` → `{tripId, bands, etaSeconds}`. Then write `trips/{tripId}/positions` docs `{lat,lng,accuracyM,speedMps,ts(ms),expireAt(Timestamp now+30d)}`; 200 m filter in far phase, every 5 s in near phase. Switch to near when `trips/{tripId}.phaseHint == 'near'` or straight-line distance ≤ `bands.near`.
+- Driver start: `startTrip({spotId, lat, lng, fuzzy?, etaSec?})` → `{tripId, bands, etaSeconds}`. Then write `trips/{tripId}/positions` docs `{lat,lng,accuracyM,speedMps,ts(ms),expireAt(Timestamp now+30d), etaSec?}`. **iOS: compute `etaSec` on-device with `MKDirections.calculateETA` (free, traffic-aware) and include it — the server then makes zero routing calls for that trip.** Android omits it; 200 m filter in far phase, every 5 s in near phase. Switch to near when `trips/{tripId}.phaseHint == 'near'` or straight-line distance ≤ `bands.near`.
 - Stop tracking when `trips/{tripId}.state` leaves `driving`. Call `endTrip({tripId, reason:'arrived'|'cancelled'})` from the UI.
 - Receiver: listen to `trips where pairId == and state in [armed,driving]`; render `receiverView`. Quick replies: `sendReply({tripId, kind, text?})`. Driver: `setRunningLate({tripId, extraMin})`.
 - Push `data.kind` values: started, tenMin, leadTime (urgent channel `sync_urgent`), slip, arrived, lost, timeout, cancelled, didYouLeave, armed, noShow, runningLate, reply.
@@ -1874,7 +1937,7 @@ Setup: two phones, paired, spot = receiver's pickup point, leadTimeMin = 3.
 - [ ] Airplane mode on driver for 6 min mid-trip → both get "Connection lost"; turn off → trip resumes within 2 min.
 - [ ] Tap "I'm coming" and don't move for 3 min → driver gets "Did you leave?".
 - [ ] Battery used by driver phone over the trip ≤ 3 %.
-- [ ] Mapbox calls for the trip (trips/{id}.mapboxCalls) ≤ 20.
+- [ ] Routing calls for the trip (trips/{id}.routingCalls) ≤ 20 on Android; 0–1 on iOS with on-device ETA.
 ```
 
 - [ ] **Step 3: Commit**
@@ -1890,7 +1953,7 @@ git commit -m "docs: add functions README and real-drive checklist"
 
 - §2 data model → Task 2 (types) incl. `phaseHint`, `receiverView`, `leadTimeMin` snapshot. `schedules` typed but not used in M1 (M3 plan).
 - §3 callables: createPair/acceptPair/revokePair (T8), upsertSpot/deleteSpot (T8), startTrip/armTrip/endTrip/sendReply/setRunningLate (T9), registerPushToken (T8). `setNeededBy`, `registerLiveActivityToken`, `deleteAccount` → M2/M3/M4 plans. `onSchedule`/`onLeaveBy` → M3 plan.
-- §3 TripEngine: smoothing, movement verification, tenMin/leadTime/slip/re-arm/arrived, low battery, fallback ETA → T4, T6, T10.
+- §3 TripEngine: smoothing, movement verification, tenMin/leadTime/slip/re-arm/arrived, low battery, fallback ETA, client-supplied ETA bypass → T4, T6, T10.
 - §3 housekeeping: lost (5 min), timeout (3 h), armed no-show (15 min) → T11.
 - §4 bands/phase handoff via `phaseHint` → T6 + README contract.
 - §8 rules: clients write only `positions` → T12.
