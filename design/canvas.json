@@ -1,0 +1,34 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 880, "h": 1180 },
+
+    { "file": "Welcome.dc.html", "x": 990, "y": 0, "w": 390, "h": 844 },
+    { "file": "Phone.dc.html", "x": 1430, "y": 0, "w": 390, "h": 844 },
+    { "file": "Verify.dc.html", "x": 1870, "y": 0, "w": 390, "h": 844 },
+    { "file": "Profile.dc.html", "x": 2310, "y": 0, "w": 390, "h": 844 },
+
+    { "file": "PairEmpty.dc.html", "x": 990, "y": 1000, "w": 390, "h": 844 },
+    { "file": "PairInvite.dc.html", "x": 1430, "y": 1000, "w": 390, "h": 844 },
+    { "file": "PairEnter.dc.html", "x": 1870, "y": 1000, "w": 390, "h": 844 },
+    { "file": "Spots.dc.html", "x": 2310, "y": 1000, "w": 390, "h": 844 },
+    { "file": "SpotEdit.dc.html", "x": 2750, "y": 1000, "w": 390, "h": 844 },
+
+    { "file": "DriverHome.dc.html", "x": 990, "y": 2000, "w": 390, "h": 844 },
+    { "file": "DriverTrip.dc.html", "x": 1430, "y": 2000, "w": 390, "h": 844 },
+    { "file": "DriverNudge.dc.html", "x": 1870, "y": 2000, "w": 390, "h": 844 },
+    { "file": "ReceiverHome.dc.html", "x": 2310, "y": 2000, "w": 390, "h": 844 },
+    { "file": "ReceiverTrip.dc.html", "x": 2750, "y": 2000, "w": 390, "h": 844 },
+
+    { "file": "Notifications.dc.html", "x": 990, "y": 3000, "w": 390, "h": 844 },
+    { "file": "LiveActivity.dc.html", "x": 1430, "y": 3000, "w": 390, "h": 844 },
+    { "file": "Settings.dc.html", "x": 1870, "y": 3000, "w": 390, "h": 844 },
+    { "file": "Schedules.dc.html", "x": 2310, "y": 3000, "w": 390, "h": 844 }
+  ],
+  "annotations": [
+    { "id": "note-onboarding", "x": 990, "y": -110, "w": 400, "text": "Onboarding — phone number only, no password, no email. Permissions are explained in the app's own words before the OS prompt appears." },
+    { "id": "note-pairing", "x": 990, "y": 890, "w": 400, "text": "Pairing & spots — two people at a time; either can drive. The person who WAITS at a spot owns its headstart value; the driver cannot set it for them." },
+    { "id": "note-trip", "x": 990, "y": 1890, "w": 460, "text": "The trip — driver on the left, receiver on the right. The driver screen shows exactly what the other person has been told, so nobody has to ask 'did she get it?'" },
+    { "id": "note-alerts", "x": 990, "y": 2890, "w": 460, "text": "Alerts & settings — only the walk-out alert is time-sensitive. Everything else stays quiet so the loud one keeps meaning something." }
+  ],
+  "launch": { "view": "canvas" }
+}

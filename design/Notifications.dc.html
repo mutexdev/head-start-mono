@@ -1,0 +1,119 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#15171b;font-family:Archivo,system-ui,'Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased}
+    a{color:#3ad693}
+    a:hover{color:#7fe6b6}
+  </style>
+</helmet>
+<div style="width:390px;height:844px;background:#15171b;color:#f2f4f7;display:flex;flex-direction:column;padding:0 22px">
+  <div style="height:78px;flex-shrink:0"></div>
+  <div style="font-size:26px;font-weight:700;letter-spacing:-0.8px">The alert ladder</div>
+  <div style="height:8px"></div>
+  <div style="font-size:15px;line-height:1.5;color:#a8b0ba">Every notification Sara can receive, in the order she gets them.</div>
+  <div style="height:22px"></div>
+
+  <div style="display:flex;flex-direction:column;gap:13px">
+
+    <div style="border-radius:17px;background:#1e2126;border:1px solid #31363d;padding:15px 16px;display:flex;gap:13px">
+      <div style="width:36px;height:36px;border-radius:10px;background:#3ad693;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0c1c14" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l1.5-4.5A2 2 0 0 1 8.4 7h7.2a2 2 0 0 1 1.9 1.5L19 13"/><path d="M3 13h18v4h-2v-1H5v1H3z"/></svg>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;flex-grow:1">
+        <div style="display:flex;align-items:baseline;gap:8px">
+          <div style="font-size:15px;font-weight:700">Mostafi started driving</div>
+          <div style="flex-grow:1"></div>
+          <div style="font-size:12px;color:#6d7681">now</div>
+        </div>
+        <div style="font-size:14px;line-height:1.4;color:#a8b0ba">ETA 22 min to Office</div>
+      </div>
+    </div>
+
+    <div style="border-radius:17px;background:#1e2126;border:1px solid #31363d;padding:15px 16px;display:flex;gap:13px">
+      <div style="width:36px;height:36px;border-radius:10px;background:#262a30;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#3ad693" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 1.8"/></svg>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;flex-grow:1">
+        <div style="display:flex;align-items:baseline;gap:8px">
+          <div style="font-size:15px;font-weight:700">Mostafi is close</div>
+          <div style="flex-grow:1"></div>
+          <div style="font-size:12px;color:#6d7681">12m</div>
+        </div>
+        <div style="font-size:14px;line-height:1.4;color:#a8b0ba">10 minutes away</div>
+      </div>
+    </div>
+
+    <div style="border-radius:17px;background:rgba(240,161,60,0.13);border:1.5px solid #f0a13c;padding:17px 16px;display:flex;gap:13px;box-shadow:0 8px 26px rgba(240,161,60,0.13)">
+      <div style="width:40px;height:40px;border-radius:11px;background:#f0a13c;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#241804" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4.6" r="1.9"/><path d="M12 21l1.6-5.2-2.6-2.6.8-4.6 3.3 2.1 2.4 1"/><path d="M11.8 8.6L9 10.7l-1.5 3.6"/><path d="M14.6 16.4L17.1 21"/></svg>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;flex-grow:1">
+        <div style="display:flex;align-items:baseline;gap:8px">
+          <div style="font-size:18px;font-weight:700;letter-spacing:-0.3px">Start walking now</div>
+          <div style="flex-grow:1"></div>
+          <div style="font-size:12px;color:#a8b0ba">19m</div>
+        </div>
+        <div style="font-size:15px;line-height:1.4;color:#f2f4f7">Mostafi is 3 minutes away</div>
+        <div style="height:2px"></div>
+        <div style="font-size:11px;letter-spacing:1.2px;text-transform:uppercase;font-weight:700;color:#f0a13c">Time-sensitive · own sound · breaks through focus</div>
+      </div>
+    </div>
+
+    <div style="border-radius:17px;background:#1e2126;border:1px solid rgba(239,111,82,0.5);padding:15px 16px;display:flex;gap:13px">
+      <div style="width:36px;height:36px;border-radius:10px;background:rgba(239,111,82,0.16);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#ef6f52" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5l8.5 15h-17z"/><path d="M12 10.5v3.2M12 16.6v.1"/></svg>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;flex-grow:1">
+        <div style="display:flex;align-items:baseline;gap:8px">
+          <div style="font-size:15px;font-weight:700">Mostafi is delayed</div>
+          <div style="flex-grow:1"></div>
+          <div style="font-size:12px;color:#6d7681">21m</div>
+        </div>
+        <div style="font-size:14px;line-height:1.4;color:#a8b0ba">Traffic — now 8 min, stay inside</div>
+      </div>
+    </div>
+
+    <div style="border-radius:17px;background:#1e2126;border:1px solid #31363d;padding:15px 16px;display:flex;gap:13px">
+      <div style="width:36px;height:36px;border-radius:10px;background:#3ad693;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0c1c14" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12.5l4 4 8-9"/></svg>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;flex-grow:1">
+        <div style="display:flex;align-items:baseline;gap:8px">
+          <div style="font-size:15px;font-weight:700">Mostafi has arrived</div>
+          <div style="flex-grow:1"></div>
+          <div style="font-size:12px;color:#6d7681">24m</div>
+        </div>
+        <div style="font-size:14px;line-height:1.4;color:#a8b0ba">Waiting at Office · tracking stopped</div>
+      </div>
+    </div>
+
+    <div style="border-radius:17px;background:#1e2126;border:1px dashed #31363d;padding:15px 16px;display:flex;gap:13px;opacity:0.75">
+      <div style="width:36px;height:36px;border-radius:10px;background:#262a30;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#6d7681" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l16 16"/><circle cx="12" cy="12" r="9"/></svg>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;flex-grow:1">
+        <div style="font-size:15px;font-weight:700">Connection lost</div>
+        <div style="font-size:14px;line-height:1.4;color:#a8b0ba">No location from Mostafi for 5 min</div>
+      </div>
+    </div>
+
+  </div>
+  <div style="flex-grow:1"></div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

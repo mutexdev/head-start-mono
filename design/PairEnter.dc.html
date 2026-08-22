@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#15171b;font-family:Archivo,system-ui,'Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased}
+    a{color:#3ad693}
+    a:hover{color:#7fe6b6}
+  </style>
+</helmet>
+<div style="width:390px;height:844px;background:#15171b;color:#f2f4f7;display:flex;flex-direction:column;padding:0 26px">
+  <div style="height:70px;flex-shrink:0"></div>
+  <div style="height:44px;display:flex;align-items:center">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a8b0ba" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+  </div>
+  <div style="height:26px"></div>
+
+  <div style="font-size:30px;font-weight:700;letter-spacing:-1px;line-height:1.15">Enter their code</div>
+  <div style="height:12px"></div>
+  <div style="font-size:16px;line-height:1.5;color:#a8b0ba">Six characters, from the invite they sent you.</div>
+
+  <div style="height:36px"></div>
+
+  <div style="display:flex;gap:8px">
+    <div style="flex-grow:1;height:62px;border-radius:13px;background:#1e2126;border:1px solid #31363d;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:600">K</div>
+    <div style="flex-grow:1;height:62px;border-radius:13px;background:#1e2126;border:1px solid #31363d;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:600">7</div>
+    <div style="flex-grow:1;height:62px;border-radius:13px;background:#1e2126;border:1px solid #31363d;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:600">M</div>
+    <div style="flex-grow:1;height:62px;border-radius:13px;background:#1e2126;border:1.5px solid #3ad693;display:flex;align-items:center;justify-content:center"><span style="width:2px;height:26px;background:#3ad693"></span></div>
+    <div style="flex-grow:1;height:62px;border-radius:13px;background:#1e2126;border:1px solid #31363d"></div>
+    <div style="flex-grow:1;height:62px;border-radius:13px;background:#1e2126;border:1px solid #31363d"></div>
+  </div>
+
+  <div style="height:24px"></div>
+  <div style="height:52px;border-radius:14px;background:#1e2126;border:1px solid #31363d;display:flex;align-items:center;justify-content:center;gap:10px;font-size:16px;font-weight:500;color:#a8b0ba">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 14h3v3h-3zM19 19h2v2h-2z"/></svg>
+    Scan their QR instead
+  </div>
+
+  <div style="flex-grow:1"></div>
+  <div style="padding-bottom:38px">
+    <div style="height:56px;border-radius:14px;background:#262a30;border:1px solid #31363d;color:#6d7681;font-size:17px;font-weight:600;display:flex;align-items:center;justify-content:center">Pair</div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

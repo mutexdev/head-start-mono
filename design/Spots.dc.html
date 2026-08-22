@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#15171b;font-family:Archivo,system-ui,'Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased}
+    a{color:#3ad693}
+    a:hover{color:#7fe6b6}
+  </style>
+</helmet>
+<div style="width:390px;height:844px;background:#15171b;color:#f2f4f7;display:flex;flex-direction:column;padding:0 26px">
+  <div style="height:78px;flex-shrink:0"></div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between">
+    <div style="font-size:30px;font-weight:700;letter-spacing:-1px">Pickup spots</div>
+    <div style="width:44px;height:44px;border-radius:14px;background:#1e2126;border:1px solid #31363d;display:flex;align-items:center;justify-content:center">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3ad693" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+    </div>
+  </div>
+  <div style="height:10px"></div>
+  <div style="font-size:15px;line-height:1.5;color:#a8b0ba">Each spot remembers how much headstart the person waiting there needs.</div>
+
+  <div style="height:26px"></div>
+
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div style="border-radius:16px;background:#1e2126;border:1px solid #31363d;padding:18px 18px 18px 20px;display:flex;align-items:center;gap:15px">
+      <div style="width:42px;height:42px;border-radius:12px;background:#262a30;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#3ad693" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V8l8-5 8 5v13"/><path d="M9.5 21v-6h5v6"/></svg>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;flex-grow:1">
+        <div style="font-size:17px;font-weight:600">Office</div>
+        <div style="font-size:14px;color:#a8b0ba">Sara walks out <span style="color:#f0a13c;font-weight:600">3 min</span> early</div>
+      </div>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6d7681" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+    </div>
+
+    <div style="border-radius:16px;background:#1e2126;border:1px solid #31363d;padding:18px 18px 18px 20px;display:flex;align-items:center;gap:15px">
+      <div style="width:42px;height:42px;border-radius:12px;background:#262a30;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#a8b0ba" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9v6M18 9v6M3 11v2M21 11v2M9 7v10M15 7v10"/></svg>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;flex-grow:1">
+        <div style="font-size:17px;font-weight:600">Gym</div>
+        <div style="font-size:14px;color:#a8b0ba">Sara walks out <span style="color:#f0a13c;font-weight:600">2 min</span> early</div>
+      </div>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6d7681" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+    </div>
+
+    <div style="border-radius:16px;background:#1e2126;border:1px solid #31363d;padding:18px 18px 18px 20px;display:flex;align-items:center;gap:15px">
+      <div style="width:42px;height:42px;border-radius:12px;background:#262a30;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#a8b0ba" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15l18-6-3-4-4 1.5L9 3 6.5 4l3 5L5 10.5 3 9z"/><path d="M5 20h14"/></svg>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;flex-grow:1">
+        <div style="font-size:17px;font-weight:600">Airport — arrivals</div>
+        <div style="font-size:14px;color:#a8b0ba">Sara walks out <span style="color:#f0a13c;font-weight:600">8 min</span> early</div>
+      </div>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6d7681" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+    </div>
+  </div>
+
+  <div style="flex-grow:1"></div>
+  <div style="display:flex;gap:10px;align-items:flex-start;padding-bottom:44px">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6d7681" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4.5M12 8.2v.1"/></svg>
+    <div style="font-size:14px;line-height:1.5;color:#6d7681">Whoever waits at a spot sets its headstart — you can&#39;t set it for them.</div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
