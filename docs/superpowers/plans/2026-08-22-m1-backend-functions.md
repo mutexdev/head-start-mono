@@ -1962,3 +1962,140 @@ git commit -m "docs: add functions README and real-drive checklist"
 - §10 tests: engine table-driven (T6), emulator (T13), real-drive checklist (T14).
 
 Type consistency check: `step`/`EngineInput`/`EnginePatch` names match between T6 and T10; `msg.*` signatures match between T5, T6, T9, T11; `bandsFor(distance, eta, leadTimeMin)` matches T4 and T9.
+
+---
+
+### Task 15: Denormalise display names onto the pair document
+
+**Why this exists:** `firestore.rules` lets a user read only their own `users/{uid}` document, so a client cannot see their partner's `displayName` — yet almost every screen shows it ("Sara walks out 3 min early", "Sharing with Sara"). Both client plans independently invented a workaround for this, and they invented *different* ones. This task removes the need for either.
+
+**Run this task before starting either client plan.**
+
+**Files:**
+- Modify: `functions/src/types.ts`
+- Modify: `functions/src/callables/pairs.ts`
+- Modify: `functions/src/callables/tokens.ts`
+- Test: `functions/test/callables/pairs.emulator.test.ts`
+
+- [ ] **Step 1: Add the field to the pair type**
+
+In `functions/src/types.ts`, replace the `PairDoc` interface with:
+
+```ts
+export interface PairDoc {
+  members: [string, string] | [string];
+  status: PairStatus;
+  inviteCode: string;
+  createdBy: string;
+  createdAt: number;
+  /** uid -> displayName, so each member can render the other's name without reading their user doc. */
+  memberNames: Record<string, string>;
+}
+```
+
+- [ ] **Step 2: Write the failing test**
+
+Create `functions/test/callables/pairs.emulator.test.ts`:
+
+```ts
+// Runs only under: npm run test:emu
+process.env.GCLOUD_PROJECT = 'fin-e8358';
+
+import { pairs, users } from '../../src/io/firestore';
+import { syncDisplayNameToPairs } from '../../src/callables/pairs';
+
+const T0 = 1_700_000_000_000;
+
+describe('memberNames denormalisation', () => {
+  beforeAll(() => { if (!process.env.FIRESTORE_EMULATOR_HOST) throw new Error('run via npm run test:emu'); });
+
+  it('syncDisplayNameToPairs updates every active pair the user belongs to', async () => {
+    await users().doc('u1').set({ phone: '+1', displayName: 'Mostafi', platform: 'ios', fcmTokens: [], createdAt: T0 });
+    const a = await pairs().add({ members: ['u1', 'u2'], status: 'active', inviteCode: 'AAA111', createdBy: 'u1', createdAt: T0, memberNames: { u1: 'Old', u2: 'Sara' } });
+    const b = await pairs().add({ members: ['u3', 'u4'], status: 'active', inviteCode: 'BBB222', createdBy: 'u3', createdAt: T0, memberNames: { u3: 'X', u4: 'Y' } });
+
+    await syncDisplayNameToPairs('u1', 'Mostafi');
+
+    expect((await a.get()).data()!.memberNames).toEqual({ u1: 'Mostafi', u2: 'Sara' });
+    expect((await b.get()).data()!.memberNames).toEqual({ u3: 'X', u4: 'Y' });
+  });
+});
+```
+
+- [ ] **Step 3: Run it to verify it fails**
+
+Run: `cd functions && npm run build && npm run test:emu`
+Expected: FAIL — `syncDisplayNameToPairs` is not exported from `../../src/callables/pairs`.
+
+- [ ] **Step 4: Implement**
+
+In `functions/src/callables/pairs.ts`, add these imports at the top (replacing the existing import line for firestore helpers):
+
+```ts
+import { pairs, users, now } from '../io/firestore';
+```
+
+Add this exported helper below `randomCode`:
+
+```ts
+/** Keeps pairs/{id}.memberNames in step with a user's current displayName. */
+export async function syncDisplayNameToPairs(uid: string, displayName: string): Promise<void> {
+  const q = await pairs().where('members', 'array-contains', uid).where('status', '==', 'active').get();
+  await Promise.all(q.docs.map((d) => d.ref.update({ [`memberNames.${uid}`]: displayName })));
+}
+
+async function nameOf(uid: string): Promise<string> {
+  return (await users().doc(uid).get()).data()?.displayName ?? 'Someone';
+}
+```
+
+Replace the `doc` construction inside `createPair` with:
+
+```ts
+    const doc: PairDoc = {
+      members: [uid], status: 'pending', inviteCode, createdBy: uid, createdAt: now(),
+      memberNames: { [uid]: await nameOf(uid) },
+    };
+```
+
+Replace the `snap.ref.update(...)` line inside `acceptPair` with:
+
+```ts
+  await snap.ref.update({
+    members: [pair.createdBy, uid],
+    status: 'active',
+    [`memberNames.${uid}`]: await nameOf(uid),
+    [`memberNames.${pair.createdBy}`]: await nameOf(pair.createdBy),
+  });
+```
+
+- [ ] **Step 5: Propagate later name changes**
+
+In `functions/src/callables/tokens.ts`, replace the `else` branch of `registerPushToken` with:
+
+```ts
+  } else {
+    await ref.update({ fcmTokens: FieldValue.arrayUnion(token), platform, ...(displayName ? { displayName } : {}) });
+    if (displayName) await syncDisplayNameToPairs(uid, displayName);
+  }
+```
+
+and add to that file's imports:
+
+```ts
+import { syncDisplayNameToPairs } from './pairs';
+```
+
+- [ ] **Step 6: Run the tests**
+
+Run: `cd functions && npm run build && npm run test:emu`
+Expected: PASS.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add functions/src/types.ts functions/src/callables/pairs.ts functions/src/callables/tokens.ts functions/test/callables/pairs.emulator.test.ts
+git commit -m "feat(functions): denormalise display names onto the pair document"
+```
+
+**Client effect:** both apps read the partner's name as `pair.memberNames[otherUid]` from the pair document they already listen to. No local caching, no parsing push titles.

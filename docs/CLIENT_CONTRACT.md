@@ -28,6 +28,7 @@ Error codes returned as the callable's message: `not-paired`, `trip-active`, `sp
 - `spots` where `pairId == <pairId>` — live list.
 - `trips` where `pairId == <pairId>` and `state in ["armed","driving"]` — the active trip, live.
 - `trips/{tripId}/replies` ordered by `ts` — quick replies both ways.
+- `pairs/{pairId}` — includes `memberNames` (`uid -> displayName`) so each side can render the other's name without reading their user document.
 
 Trip fields the clients read:
 `state`, `spot{lat,lng,radiusM,name}`, `leadTimeMin`, `driverUid`, `receiverUid`,
