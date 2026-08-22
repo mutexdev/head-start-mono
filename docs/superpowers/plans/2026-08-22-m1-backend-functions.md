@@ -79,9 +79,9 @@ Conventions: ESM off (CommonJS, simplest for Functions). Times are epoch **milli
 
 `.firebaserc`:
 ```json
-{ "projects": { "default": "the-sync-dev" } }
+{ "projects": { "default": "fin-e8358" } }
 ```
-(Replace `the-sync-dev` with the real project id after `firebase projects:create`.)
+(Replace `fin-e8358` with the real project id after `firebase projects:create`.)
 
 `firestore.indexes.json`:
 ```json
@@ -1836,7 +1836,7 @@ git commit -m "test(functions): add Firestore emulator integration test and Mapb
 
 ## One-time setup
 1. `npm i -g firebase-tools && firebase login`
-2. `firebase projects:create the-sync-dev` (or pick an id) and put it in `.firebaserc`.
+2. `firebase projects:create fin-e8358` (or pick an id) and put it in `.firebaserc`.
 3. Enable in console: Authentication → Phone; Firestore (production mode); Cloud Messaging. Upload APNs key under Cloud Messaging → Apple app configuration (after the iOS app exists).
 4. Upgrade to Blaze (required for outbound Mapbox calls; free quotas still apply).
 5. `firebase functions:secrets:set MAPBOX_TOKEN` → paste a Mapbox token with Directions scope.
