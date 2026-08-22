@@ -7,7 +7,7 @@
 <body>
 <x-dc>
 <helmet>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;display=swap">
   <style>
     *{box-sizing:border-box}
     body{margin:0;background:#15171b;font-family:Archivo,system-ui,'Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased}
@@ -19,10 +19,13 @@
   <div style="height:78px;flex-shrink:0"></div>
   <div style="font-size:26px;font-weight:700;letter-spacing:-0.8px">The alert ladder</div>
   <div style="height:8px"></div>
-  <div style="font-size:15px;line-height:1.5;color:#a8b0ba">Every notification Sara can receive, in the order she gets them.</div>
+  <div style="font-size:15px;line-height:1.5;color:#a8b0ba">Every notification Sara can receive, on one 5:26 pm trip.</div>
   <div style="height:22px"></div>
 
-  <div style="display:flex;flex-direction:column;gap:13px">
+  <div style="font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:#6d7681;font-weight:600">Every trip</div>
+  <div style="height:12px"></div>
+
+  <div style="display:flex;flex-direction:column;gap:11px">
 
     <div style="border-radius:17px;background:#1e2126;border:1px solid #31363d;padding:15px 16px;display:flex;gap:13px">
       <div style="width:36px;height:36px;border-radius:10px;background:#3ad693;display:flex;align-items:center;justify-content:center;flex-shrink:0">
@@ -32,7 +35,7 @@
         <div style="display:flex;align-items:baseline;gap:8px">
           <div style="font-size:15px;font-weight:700">Mostafi started driving</div>
           <div style="flex-grow:1"></div>
-          <div style="font-size:12px;color:#6d7681">now</div>
+          <div style="font-size:12px;color:#6d7681;font-variant-numeric:tabular-nums">5:26 pm</div>
         </div>
         <div style="font-size:14px;line-height:1.4;color:#a8b0ba">ETA 22 min to Office</div>
       </div>
@@ -46,9 +49,9 @@
         <div style="display:flex;align-items:baseline;gap:8px">
           <div style="font-size:15px;font-weight:700">Mostafi is close</div>
           <div style="flex-grow:1"></div>
-          <div style="font-size:12px;color:#6d7681">12m</div>
+          <div style="font-size:12px;color:#6d7681;font-variant-numeric:tabular-nums">5:38 pm</div>
         </div>
-        <div style="font-size:14px;line-height:1.4;color:#a8b0ba">10 minutes away</div>
+        <div style="font-size:14px;line-height:1.4;color:#a8b0ba">10 min away</div>
       </div>
     </div>
 
@@ -60,25 +63,11 @@
         <div style="display:flex;align-items:baseline;gap:8px">
           <div style="font-size:18px;font-weight:700;letter-spacing:-0.3px">Start walking now</div>
           <div style="flex-grow:1"></div>
-          <div style="font-size:12px;color:#a8b0ba">19m</div>
+          <div style="font-size:12px;color:#a8b0ba;font-variant-numeric:tabular-nums">5:45 pm</div>
         </div>
-        <div style="font-size:15px;line-height:1.4;color:#f2f4f7">Mostafi is 3 minutes away</div>
+        <div style="font-size:15px;line-height:1.4;color:#f2f4f7">Mostafi is 3 min away</div>
         <div style="height:2px"></div>
-        <div style="font-size:11px;letter-spacing:1.2px;text-transform:uppercase;font-weight:700;color:#f0a13c">Time-sensitive · own sound · breaks through focus</div>
-      </div>
-    </div>
-
-    <div style="border-radius:17px;background:#1e2126;border:1px solid rgba(239,111,82,0.5);padding:15px 16px;display:flex;gap:13px">
-      <div style="width:36px;height:36px;border-radius:10px;background:rgba(239,111,82,0.16);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#ef6f52" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5l8.5 15h-17z"/><path d="M12 10.5v3.2M12 16.6v.1"/></svg>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:3px;flex-grow:1">
-        <div style="display:flex;align-items:baseline;gap:8px">
-          <div style="font-size:15px;font-weight:700">Mostafi is delayed</div>
-          <div style="flex-grow:1"></div>
-          <div style="font-size:12px;color:#6d7681">21m</div>
-        </div>
-        <div style="font-size:14px;line-height:1.4;color:#a8b0ba">Traffic — now 8 min, stay inside</div>
+        <div style="font-size:11px;letter-spacing:1.2px;text-transform:uppercase;font-weight:700;color:#f0a13c">Time-sensitive &#183; own sound</div>
       </div>
     </div>
 
@@ -90,9 +79,25 @@
         <div style="display:flex;align-items:baseline;gap:8px">
           <div style="font-size:15px;font-weight:700">Mostafi has arrived</div>
           <div style="flex-grow:1"></div>
-          <div style="font-size:12px;color:#6d7681">24m</div>
+          <div style="font-size:12px;color:#6d7681;font-variant-numeric:tabular-nums">5:48 pm</div>
         </div>
-        <div style="font-size:14px;line-height:1.4;color:#a8b0ba">Waiting at Office · tracking stopped</div>
+        <div style="font-size:14px;line-height:1.4;color:#a8b0ba">Waiting at Office &#183; tracking stopped</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height:22px"></div>
+  <div style="font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:#6d7681;font-weight:600">Only when something changes</div>
+  <div style="height:12px"></div>
+
+  <div style="display:flex;flex-direction:column;gap:11px">
+    <div style="border-radius:17px;background:#1e2126;border:1px solid rgba(239,111,82,0.5);padding:15px 16px;display:flex;gap:13px">
+      <div style="width:36px;height:36px;border-radius:10px;background:rgba(239,111,82,0.16);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#ef6f52" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5l8.5 15h-17z"/><path d="M12 10.5v3.2M12 16.6v.1"/></svg>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;flex-grow:1">
+        <div style="font-size:15px;font-weight:700">Mostafi is delayed</div>
+        <div style="font-size:14px;line-height:1.4;color:#a8b0ba">Traffic &#8212; now 8 min, stay inside</div>
       </div>
     </div>
 
@@ -105,8 +110,8 @@
         <div style="font-size:14px;line-height:1.4;color:#a8b0ba">No location from Mostafi for 5 min</div>
       </div>
     </div>
-
   </div>
+
   <div style="flex-grow:1"></div>
 </div>
 </x-dc>

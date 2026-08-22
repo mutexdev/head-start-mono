@@ -17,6 +17,9 @@ Published canvas: https://claude.ai/code/artifact/6692b71e-794c-451a-a1ce-0c1071
 | Go (driver acts) | `#3AD693` — oklch(.78 .15 155) |
 | Headstart (walk out now) | `#F0A13C` — oklch(.78 .15 65) |
 | Delayed (stay inside) | `#EF6F52` — oklch(.70 .15 25) |
+| Ink on green | `#0C1C14` |
+| Ink on amber | `#241804` |
+| Map base / roads / minor / blocks | `#1A1D22` · `#23272D` · `#20242A` · `#1E2228` |
 
 Type: **Archivo** (400/500/600/700), fallback `system-ui, "Helvetica Neue", Arial`. Countdowns and clock times use `font-variant-numeric: tabular-nums`.
 Radii: 12–14 px controls, 16–22 px cards, 26 px sheets. Controls 56 px tall; nothing interactive under 44 px.
@@ -26,6 +29,10 @@ Radii: 12–14 px controls, 16–22 px cards, 26 px sheets. Controls 56 px tall;
 - Only the walk-out alert is time-sensitive (own sound, breaks through focus). Everything else stays quiet.
 - Every screen states the privacy position in plain words; nothing is shared until the driver taps.
 - No fake status bars or keyboards — the OS draws those.
+- One canonical trip runs through every screen: tap **5:26 pm** → "10 min away" **5:38** → "start walking" **5:45** → arrives **5:48**. Keep it consistent when editing.
+
+## Known deviations
+- `Schedules.dc.html` day toggles are ~41 px wide × 50 px tall — seven across a 390 px screen cannot reach 44 px in both axes. Total touch area still exceeds a 44 × 44 target.
 
 ## Regenerating
 ```bash

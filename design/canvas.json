@@ -1,6 +1,6 @@
 {
   "artboards": [
-    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 880, "h": 1180 },
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 880, "h": 1300 },
 
     { "file": "Welcome.dc.html", "x": 990, "y": 0, "w": 390, "h": 844 },
     { "file": "Phone.dc.html", "x": 1430, "y": 0, "w": 390, "h": 844 },
