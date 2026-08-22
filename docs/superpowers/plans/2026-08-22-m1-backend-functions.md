@@ -1899,7 +1899,7 @@ git commit -m "test(functions): add Firestore emulator integration test"
 
 ## One-time setup
 1. `npm i -g firebase-tools && firebase login`
-2. `firebase projects:create fin-e8358` (or pick an id) and put it in `.firebaserc`.
+2. Project `fin-e8358` already exists — `firebase use fin-e8358`. Full click-by-click setup: `docs/SETUP.md`.
 3. Enable in console: Authentication → Phone; Firestore (production mode); Cloud Messaging. Upload APNs key under Cloud Messaging → Apple app configuration (after the iOS app exists).
 4. Upgrade to Blaze (required for outbound HTTP calls; free quotas still apply).
 5. Google Routes API key: in Google Cloud console for project `fin-e8358` → APIs & Services → enable **Routes API** → Credentials → Create API key → restrict it to "Routes API" only. Then `firebase functions:secrets:set GOOGLE_ROUTES_KEY --project fin-e8358` and paste it. Free tier: 10,000 Compute Routes calls/month.
