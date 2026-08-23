@@ -1,0 +1,16 @@
+{
+  "Simulator Target Bundle": "com.mutexdev.headstart",
+  "aps": {
+    "alert": {
+      "title": "Mostafi is close",
+      "body": "Mostafi is 10 min away"
+    },
+    "sound": "default",
+    "interruption-level": "active",
+    "content-available": 1
+  },
+  "data": {
+    "kind": "tenMin",
+    "tripId": "fixtureTrip1"
+  }
+}

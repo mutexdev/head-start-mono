@@ -1,0 +1,16 @@
+{
+  "Simulator Target Bundle": "com.mutexdev.headstart",
+  "aps": {
+    "alert": {
+      "title": "Mostafi is running late",
+      "body": "About 10 more min"
+    },
+    "sound": "default",
+    "interruption-level": "active",
+    "content-available": 1
+  },
+  "data": {
+    "kind": "runningLate",
+    "tripId": "fixtureTrip1"
+  }
+}

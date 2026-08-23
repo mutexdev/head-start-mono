@@ -1,0 +1,16 @@
+{
+  "Simulator Target Bundle": "com.mutexdev.headstart",
+  "aps": {
+    "alert": {
+      "title": "Trip ended",
+      "body": "The trip timed out after 3 hours"
+    },
+    "sound": "default",
+    "interruption-level": "active",
+    "content-available": 1
+  },
+  "data": {
+    "kind": "timeout",
+    "tripId": "fixtureTrip1"
+  }
+}

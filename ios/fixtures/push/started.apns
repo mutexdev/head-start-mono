@@ -1,0 +1,16 @@
+{
+  "Simulator Target Bundle": "com.mutexdev.headstart",
+  "aps": {
+    "alert": {
+      "title": "Mostafi started driving",
+      "body": "ETA 22 min to Office"
+    },
+    "sound": "default",
+    "interruption-level": "active",
+    "content-available": 1
+  },
+  "data": {
+    "kind": "started",
+    "tripId": "fixtureTrip1"
+  }
+}

@@ -1,0 +1,150 @@
+# Headstart — XcodeGen project definition.
+#
+# This file REPLACES plan Task 1 and Task 17 Step 3, which were Xcode GUI
+# walkthroughs (File > New > Project, Add Package Dependencies, the Signing &
+# Capabilities pane, the Info tab, Target Membership checkboxes). None of that is
+# reachable from an automated pipeline. Everything those steps configured is
+# expressed declaratively here.
+#
+# Headstart.xcodeproj is GENERATED and gitignored. Never commit it, never edit it.
+# Adding a source file = write the file into the target's folder + `make project`.
+name: Headstart
+options:
+  bundleIdPrefix: com.mutexdev
+  deploymentTarget: { iOS: "17.0" }
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+packages:
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    # Pinned exactly (plan said "Up to Next Major 11.0.0"): 12.18.0 is the newest
+    # tag and the one built for Xcode 26 / Swift 6. Exact pin keeps every
+    # implementer and the reviewer on an identical resolution.
+    exactVersion: 12.18.0
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+    TARGETED_DEVICE_FAMILY: "1"
+    # No paid Apple team is available, so nothing can be signed. Simulator builds
+    # need no team; the widget extension still embeds correctly with signing off.
+    CODE_SIGNING_ALLOWED: NO
+    CODE_SIGNING_REQUIRED: NO
+    CODE_SIGN_IDENTITY: ""
+    DEVELOPMENT_TEAM: ""
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+
+targets:
+  Headstart:
+    type: application
+    platform: iOS
+    sources:
+      - path: Headstart
+        excludes: ["**/*.md", "Headstart.entitlements", "HeadstartSimulator.entitlements"]
+    settings:
+      base:
+        # MUST be set explicitly. XcodeGen otherwise derives it from the target
+        # NAME -> com.mutexdev.Headstart (capital H), which does not prefix the
+        # widget's com.mutexdev.headstart.HeadstartWidget, and
+        # ValidateEmbeddedBinary hard-fails the build. Observed, not theorised.
+        PRODUCT_BUNDLE_IDENTIFIER: com.mutexdev.headstart
+      configs:
+        Debug:
+          # HS_EMULATOR makes Debug builds talk to the Firebase Local Emulator
+          # Suite by default. See Core/BackendEnvironment.swift.
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG HS_EMULATOR
+          # AD-HOC SIGNING, DEBUG ONLY — this is what makes the keychain work, and
+          # without the keychain FirebaseAuth cannot persist a session, so phone
+          # sign-in fails with FIRAuthErrorDomain 17995 / SecItemAdd -34018. Still no
+          # team and no provisioning profile: "-" is Xcode's "Sign to Run Locally".
+          # See Headstart/HeadstartSimulator.entitlements.
+          CODE_SIGNING_ALLOWED: YES
+          CODE_SIGNING_REQUIRED: YES
+          CODE_SIGN_IDENTITY: "-"
+          CODE_SIGN_ENTITLEMENTS: Headstart/HeadstartSimulator.entitlements
+        Release:
+          # The entitlements file's job in M1 is to exist and be correct for the
+          # eventual device build. It is deliberately NOT wired into Debug: a
+          # wired entitlements file trips ProcessProductPackaging with signing off.
+          CODE_SIGN_ENTITLEMENTS: Headstart/Headstart.entitlements
+    info:
+      path: Headstart/Info.plist
+      properties:
+        CFBundleDisplayName: Headstart
+        UILaunchScreen: {}
+        UIUserInterfaceStyle: Dark
+        NSSupportsLiveActivities: true
+        # Explicit push delivery rather than Firebase's swizzled proxy, so the
+        # PushRouter log assertions are trustworthy.
+        FirebaseAppDelegateProxyEnabled: false
+        NSLocationWhenInUseUsageDescription: "Headstart shares your location with the one person you're paired with, and only while a pickup is running. It starts when you tap \"I'm coming\" and stops the moment you arrive."
+        UIBackgroundModes: [location, remote-notification]
+        UIAppFonts: [Archivo-Regular.ttf, Archivo-Medium.ttf, Archivo-SemiBold.ttf, Archivo-Bold.ttf]
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        CFBundleURLTypes:
+          # Phone-OTP reCAPTCHA fallback. Value is REVERSED_CLIENT_ID from
+          # Headstart/GoogleService-Info.plist (present; OAuth client exists).
+          - CFBundleURLName: firebase-phone-auth
+            CFBundleTypeRole: Editor
+            CFBundleURLSchemes: ["com.googleusercontent.apps.525190528883-7eom4eeom9nghqsrr3pjiosiql2hs16f"]
+    dependencies:
+      - package: Firebase
+        product: FirebaseAuth
+      - package: Firebase
+        product: FirebaseFirestore
+      - package: Firebase
+        product: FirebaseFunctions
+      - package: Firebase
+        product: FirebaseMessaging
+      # No `embed: true` — XcodeGen embeds app-extension targets by default and
+      # adding it produces a duplicated/incorrect embed phase.
+      - target: HeadstartWidgetExtension
+
+  HeadstartWidgetExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: HeadstartWidget
+      - path: Headstart/Theme
+      - path: Headstart/LiveActivity/HeadstartActivityAttributes.swift
+      - path: Headstart/Fonts
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mutexdev.headstart.HeadstartWidget
+      configs:
+        Debug:
+          # The appex must be signed too once the host app is (ValidateEmbeddedBinary).
+          CODE_SIGNING_ALLOWED: YES
+          CODE_SIGNING_REQUIRED: YES
+          CODE_SIGN_IDENTITY: "-"
+    info:
+      path: HeadstartWidget/Info.plist
+      properties:
+        UIAppFonts: [Archivo-Regular.ttf, Archivo-Medium.ttf, Archivo-SemiBold.ttf, Archivo-Bold.ttf]
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    dependencies:
+      - sdk: WidgetKit.framework
+      - sdk: SwiftUI.framework
+      - sdk: ActivityKit.framework
+
+  HeadstartTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [HeadstartTests]
+    dependencies: [{ target: Headstart }]
+    settings:
+      base:
+        # Hosted in the app so the tests see the app bundle's registered fonts.
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/Headstart.app/Headstart
+        BUNDLE_LOADER: $(TEST_HOST)
+
+schemes:
+  Headstart:
+    build:
+      targets: { Headstart: all, HeadstartWidgetExtension: all }
+    run: { config: Debug }
+    test: { config: Debug, targets: [HeadstartTests] }

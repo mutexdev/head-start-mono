@@ -1,0 +1,13 @@
+# Headstart.xcodeproj is generated from project.yml by XcodeGen (`make project`).
+# A committed .xcodeproj is a second, divergent source of truth. Never commit it.
+Headstart.xcodeproj/
+*.xcworkspace
+build/
+DerivedData/
+.swiftpm/
+*.xcuserstate
+
+# Info.plists are GENERATED from project.yml by XcodeGen on every `make project`.
+# Edit project.yml, never these.
+Headstart/Info.plist
+HeadstartWidget/Info.plist

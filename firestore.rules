@@ -9,8 +9,15 @@ service cloud.firestore {
   match /databases/{db}/documents {
     function signedIn() { return request.auth != null; }
     function uid() { return request.auth.uid; }
+    // exists() first: get() on a missing document returns null, and dereferencing
+    // .data on null aborts the whole query with "Null value error" rather than
+    // returning an empty result. A client holding a stale pairId (after an unpair,
+    // or racing onboarding) would otherwise see PERMISSION_DENIED instead of an
+    // empty list. Found by the iOS end-to-end drive.
     function isMember(pairId) {
-      return signedIn() && uid() in get(/databases/$(db)/documents/pairs/$(pairId)).data.members;
+      return signedIn()
+        && exists(/databases/$(db)/documents/pairs/$(pairId))
+        && uid() in get(/databases/$(db)/documents/pairs/$(pairId)).data.members;
     }
 
     match /users/{userId} {
@@ -33,8 +40,21 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // `get` and `list` MUST be split here. For a query, Firestore synthesises
+    // `resource` from the query's own constraints, so only fields the client
+    // actually filtered on exist. The contract's active-trip query filters on
+    // `pairId` and `state` — it never mentions driverUid — so a combined
+    // `allow read` that dereferences resource.data.driverUid fails the whole
+    // query with "Property driverUid is undefined on object. for 'list'".
+    // Found by the Android end-to-end drive; a get-only rules test cannot see it.
     match /trips/{tripId} {
-      allow read: if signedIn() && (uid() == resource.data.driverUid || uid() == resource.data.receiverUid);
+      allow get: if signedIn() && (uid() == resource.data.driverUid || uid() == resource.data.receiverUid);
+
+      // CLIENT_CONTRACT.md: `trips where pairId == <pairId> and state in ["armed","driving"]`.
+      // pairId is constrained by the query, so it is defined during list evaluation,
+      // and membership is still verified against the pair document.
+      allow list: if isMember(resource.data.pairId);
+
       allow write: if false;
 
       match /positions/{posId} {

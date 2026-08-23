@@ -1,0 +1,16 @@
+{
+  "//": "STUB emulator config for the iOS lane. Passed to firebase-tools with `--config <abs path>/firebase.json`, so nothing at the repo root is touched. Used ONLY when the real backend (repo-root firebase.json + functions/) is absent — see ios/scripts/emulator-up.sh.",
+  "functions": {
+    "source": "functions"
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "emulators": {
+    "auth": { "host": "127.0.0.1", "port": 9099 },
+    "firestore": { "host": "127.0.0.1", "port": 8080 },
+    "functions": { "host": "127.0.0.1", "port": 5001 },
+    "ui": { "enabled": true, "host": "127.0.0.1", "port": 4000 },
+    "singleProjectMode": true
+  }
+}

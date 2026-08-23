@@ -1,0 +1,16 @@
+{
+  "Simulator Target Bundle": "com.mutexdev.headstart",
+  "aps": {
+    "alert": {
+      "title": "Sara is waiting",
+      "body": "Tap when you leave for Office"
+    },
+    "sound": "default",
+    "interruption-level": "active",
+    "content-available": 1
+  },
+  "data": {
+    "kind": "armed",
+    "tripId": "fixtureTrip1"
+  }
+}

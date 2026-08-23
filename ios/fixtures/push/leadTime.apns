@@ -1,0 +1,16 @@
+{
+  "Simulator Target Bundle": "com.mutexdev.headstart",
+  "aps": {
+    "alert": {
+      "title": "Start walking now",
+      "body": "Mostafi is 3 min away"
+    },
+    "sound": "urgent.caf",
+    "interruption-level": "time-sensitive",
+    "content-available": 1
+  },
+  "data": {
+    "kind": "leadTime",
+    "tripId": "fixtureTrip1"
+  }
+}

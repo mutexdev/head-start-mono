@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+      Debug variant only. Two things live here and neither may ever ship:
+        1. usesCleartextTraffic, without which targetSdk 36 silently blocks every plaintext
+           connection to the Firebase emulator suite on 10.0.2.2.
+        2. The push injector, the only way to render a `data.kind` push on this machine.
+           exported=true is required because `adb shell am broadcast` runs as the shell uid.
+    -->
+    <application android:usesCleartextTraffic="true" tools:ignore="UnusedAttribute">
+
+        <receiver
+            android:name="app.headstart.debug.PushInjectorReceiver"
+            android:exported="true"
+            tools:ignore="ExportedReceiver">
+            <intent-filter>
+                <action android:name="app.headstart.DEBUG_PUSH" />
+            </intent-filter>
+        </receiver>
+
+        <!--
+          Starts the _debugPushes bridge (contract addendum: "Both clients MUST ship a
+          debug-only push bridge") without needing a line in HeadstartApp, which lives in
+          the main source set and would therefore leak into release.
+        -->
+        <provider
+            android:name="app.headstart.debug.DebugPushBridgeInitializer"
+            android:authorities="app.headstart.debugpushbridge"
+            android:exported="false"
+            android:initOrder="1" />
+    </application>
+</manifest>

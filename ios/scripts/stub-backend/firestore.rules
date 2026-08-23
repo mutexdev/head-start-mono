@@ -1,0 +1,14 @@
+rules_version = '2';
+// STUB. The real rules are <repo>/firestore.rules, shipped by the backend batch, and
+// ios/scripts/emulator-up.sh prefers them whenever they exist — running against the real
+// rules is the strictly stronger test.
+//
+// These exist so the iOS client is never BLOCKED when the backend has not landed yet.
+// They are permissive on purpose and must never be deployed anywhere.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

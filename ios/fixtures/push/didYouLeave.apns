@@ -1,0 +1,16 @@
+{
+  "Simulator Target Bundle": "com.mutexdev.headstart",
+  "aps": {
+    "alert": {
+      "title": "Did you leave?",
+      "body": "No movement detected. Tap to confirm or cancel."
+    },
+    "sound": "default",
+    "interruption-level": "active",
+    "content-available": 1
+  },
+  "data": {
+    "kind": "didYouLeave",
+    "tripId": "fixtureTrip1"
+  }
+}

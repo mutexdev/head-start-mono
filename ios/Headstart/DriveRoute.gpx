@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Headstart" xmlns="http://www.topografix.com/GPX/1/1">
+  <!-- Gulshan -> Hatirjheel, ~3.3 km, ~12 m/s, ending at the pickup spot 23.7806/90.4193.
+       FOR THE REAL-DEVICE RUN ONLY. Xcode replays this through
+       Product > Scheme > Edit Scheme > Run > Options > Core Location >
+       Allow Location Simulation > DriveRoute, and Debug > Simulate Location.
+       Both are GUI-only, so the headless drive in ios/scripts/e2e-drive.sh uses the
+       identical waypoints through `xcrun simctl location <udid> start --speed 12 ...`
+       instead. Keep the two in step: if you change a waypoint here, change it there.
+       With <time> elements Xcode interpolates at the speed the timestamps imply;
+       without them it steps one waypoint per second. -->
+  <wpt lat="23.810300" lon="90.412500"><time>2026-08-22T11:26:00Z</time></wpt>
+  <wpt lat="23.807100" lon="90.413900"><time>2026-08-22T11:26:30Z</time></wpt>
+  <wpt lat="23.803900" lon="90.415100"><time>2026-08-22T11:27:00Z</time></wpt>
+  <wpt lat="23.800600" lon="90.416200"><time>2026-08-22T11:27:30Z</time></wpt>
+  <wpt lat="23.797400" lon="90.417000"><time>2026-08-22T11:28:00Z</time></wpt>
+  <wpt lat="23.794100" lon="90.417600"><time>2026-08-22T11:28:30Z</time></wpt>
+  <wpt lat="23.790900" lon="90.418100"><time>2026-08-22T11:29:00Z</time></wpt>
+  <wpt lat="23.787600" lon="90.418600"><time>2026-08-22T11:29:30Z</time></wpt>
+  <wpt lat="23.784400" lon="90.419000"><time>2026-08-22T11:30:00Z</time></wpt>
+  <wpt lat="23.782000" lon="90.419200"><time>2026-08-22T11:30:30Z</time></wpt>
+  <wpt lat="23.780600" lon="90.419300"><time>2026-08-22T11:31:00Z</time></wpt>
+  <wpt lat="23.780600" lon="90.419300"><time>2026-08-22T11:32:00Z</time></wpt>
+</gpx>

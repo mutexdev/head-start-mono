@@ -1,0 +1,16 @@
+{
+  "Simulator Target Bundle": "com.mutexdev.headstart",
+  "aps": {
+    "alert": {
+      "title": "Mostafi is delayed",
+      "body": "Traffic — now 8 min, stay inside"
+    },
+    "sound": "default",
+    "interruption-level": "active",
+    "content-available": 1
+  },
+  "data": {
+    "kind": "slip",
+    "tripId": "fixtureTrip1"
+  }
+}

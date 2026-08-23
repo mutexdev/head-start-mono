@@ -1,0 +1,16 @@
+{
+  "Simulator Target Bundle": "com.mutexdev.headstart",
+  "aps": {
+    "alert": {
+      "title": "No trip started yet",
+      "body": "Mostafi hasn't started driving"
+    },
+    "sound": "default",
+    "interruption-level": "active",
+    "content-available": 1
+  },
+  "data": {
+    "kind": "noShow",
+    "tripId": "fixtureTrip1"
+  }
+}

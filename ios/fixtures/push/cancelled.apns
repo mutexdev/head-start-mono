@@ -1,0 +1,16 @@
+{
+  "Simulator Target Bundle": "com.mutexdev.headstart",
+  "aps": {
+    "alert": {
+      "title": "Trip cancelled",
+      "body": "Mostafi cancelled the pickup"
+    },
+    "sound": "default",
+    "interruption-level": "active",
+    "content-available": 1
+  },
+  "data": {
+    "kind": "cancelled",
+    "tripId": "fixtureTrip1"
+  }
+}
