@@ -1,0 +1,84 @@
+rules_version = '2';
+
+// Headstart M1 security rules.
+//
+// The server owns every write. `trips/{tripId}/positions/{autoId}` is the ONLY
+// client-writable path in the whole product (CLIENT_CONTRACT.md, "The one thing
+// clients write"), and it is driver-only with an exact field set.
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function signedIn() { return request.auth != null; }
+    function uid() { return request.auth.uid; }
+    function isMember(pairId) {
+      return signedIn() && uid() in get(/databases/$(db)/documents/pairs/$(pairId)).data.members;
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn() && uid() == userId;
+      allow write: if false; // via callables only
+    }
+
+    // Read covers `get` AND `list`, which is what makes the contract's pair
+    // discovery query work:
+    //   pairs where members array-contains uid and status == 'active'
+    // (composite index in firestore.indexes.json). An unfiltered collection read
+    // still fails, because it would return documents this user is not in.
+    match /pairs/{pairId} {
+      allow read: if signedIn() && uid() in resource.data.members;
+      allow write: if false;
+    }
+
+    match /spots/{spotId} {
+      allow read: if isMember(resource.data.pairId);
+      allow write: if false;
+    }
+
+    match /trips/{tripId} {
+      allow read: if signedIn() && (uid() == resource.data.driverUid || uid() == resource.data.receiverUid);
+      allow write: if false;
+
+      match /positions/{posId} {
+        // CLIENT_CONTRACT.md lines 42-47 / ADDENDUM section J: exactly seven
+        // keys — six required plus optional etaSec. hasAll enforces the six;
+        // hasOnly rejects anything extra (the plan doc omitted hasOnly, which
+        // silently allowed extra fields the addendum says must be rejected).
+        allow create: if signedIn()
+          && uid() == get(/databases/$(db)/documents/trips/$(tripId)).data.driverUid
+          && request.resource.data.keys().hasAll(['lat','lng','accuracyM','speedMps','ts','expireAt'])
+          && request.resource.data.keys().hasOnly(['lat','lng','accuracyM','speedMps','ts','expireAt','etaSec'])
+          && request.resource.data.lat is number && request.resource.data.lng is number
+          && request.resource.data.accuracyM is number && request.resource.data.speedMps is number
+          && request.resource.data.ts is number && request.resource.data.expireAt is timestamp
+          && (!('etaSec' in request.resource.data) || request.resource.data.etaSec is number);
+        allow read: if signedIn() && (
+          uid() == get(/databases/$(db)/documents/trips/$(tripId)).data.driverUid ||
+          uid() == get(/databases/$(db)/documents/trips/$(tripId)).data.receiverUid);
+        allow update, delete: if false;
+      }
+
+      match /replies/{replyId} {
+        allow read: if signedIn() && (
+          uid() == get(/databases/$(db)/documents/trips/$(tripId)).data.driverUid ||
+          uid() == get(/databases/$(db)/documents/trips/$(tripId)).data.receiverUid);
+        allow write: if false;
+      }
+    }
+
+    match /schedules/{id} {
+      allow read: if isMember(resource.data.pairId);
+      allow write: if false;
+    }
+
+    // Emulator push sink. Written ONLY by the server's FirestorePushSender, which
+    // is selected when FUNCTIONS_EMULATOR === 'true' or PUSH_SINK=firestore (or
+    // mirrored with PUSH_DEBUG_MIRROR=1). Inert in production: nothing writes it
+    // and nobody can. Both clients ship a debug-only listener on
+    //   _debugPushes where toUid == me orderBy sentAt
+    // so the server-decided alert ladder is observable on a Simulator/AVD without
+    // APNs or FCM. See CLIENT_CONTRACT_ADDENDUM.md, "Emulator contract".
+    match /_debugPushes/{id} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.toUid;
+      allow write: if false;
+    }
+  }
+}

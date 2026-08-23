@@ -1,0 +1,22 @@
+{
+  "functions": {
+    "source": "functions",
+    "codebase": "default",
+    "runtime": "nodejs22",
+    "ignore": ["node_modules", ".git", "*.log", "test", "scripts"],
+    "predeploy": ["npm --prefix functions run build"]
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "emulators": {
+    "auth": { "host": "127.0.0.1", "port": 9099 },
+    "firestore": { "host": "127.0.0.1", "port": 8080 },
+    "functions": { "host": "127.0.0.1", "port": 5001 },
+    "eventarc": { "host": "127.0.0.1", "port": 9299 },
+    "ui": { "host": "127.0.0.1", "port": 4000, "enabled": true },
+    "hub": { "host": "127.0.0.1", "port": 4400 },
+    "singleProjectMode": true
+  }
+}
