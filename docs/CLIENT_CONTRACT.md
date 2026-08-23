@@ -22,9 +22,15 @@ Firebase project: `fin-e8358`.
 | `setLowBattery` | `{lowBattery:boolean}` | `{ok:true}` | |
 
 Error codes returned as the callable's message: `not-paired`, `trip-active`, `spot-not-found`,
-`bad-code`, `own-code`, `driver-only`, `trip-not-found`, `bad-coords`, `bad-name`, `bad-token`.
+`bad-code`, `own-code`, `driver-only`, `trip-not-found`, `bad-coords`, `bad-name`, `bad-token`,
+`bad-reply` (empty `custom` text on `sendReply`).
+
+> **See also [CLIENT_CONTRACT_ADDENDUM.md](CLIENT_CONTRACT_ADDENDUM.md)** — binding resolutions for
+> everything this document left ambiguous, plus the emulator contract used to validate M1.
 
 ## Firestore reads (clients never write these)
+- `pairs` where `members array-contains <uid>` and `status == "active"` — **this is how a client
+  discovers its own `pairId`**; everything below depends on it. Needs a composite index (shipped).
 - `spots` where `pairId == <pairId>` — live list.
 - `trips` where `pairId == <pairId>` and `state in ["armed","driving"]` — the active trip, live.
 - `trips/{tripId}/replies` ordered by `ts` — quick replies both ways.
