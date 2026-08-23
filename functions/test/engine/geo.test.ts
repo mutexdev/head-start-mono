@@ -39,4 +39,22 @@ describe('polylineRemainingMeters', () => {
   it('returns 0 at the end', () => {
     expect(polylineRemainingMeters(line, { lat: 0.02, lng: 0 })).toBeLessThan(5);
   });
+
+  // Regression: a route can legitimately have as few as 2 vertices (a short,
+  // straight Google Routes leg, or the emulator's routing stub). Nearest-VERTEX
+  // snapping collapses to 0 for the entire second half of such a line; this
+  // must instead project onto the segment and shrink proportionately.
+  describe('a 2-vertex line (no interior vertices to snap to)', () => {
+    const twoVertex = [{ lat: 0, lng: 0 }, { lat: 0.02, lng: 0 }]; // ~2.2km
+    it('is proportionate just past the midpoint, not 0', () => {
+      const m = polylineRemainingMeters(twoVertex, { lat: 0.011, lng: 0 }); // 55% along
+      expect(m).toBeGreaterThan(900);
+      expect(m).toBeLessThan(1_050);
+    });
+    it('is proportionate near the end, not 0', () => {
+      const m = polylineRemainingMeters(twoVertex, { lat: 0.018, lng: 0 }); // 90% along
+      expect(m).toBeGreaterThan(150);
+      expect(m).toBeLessThan(280);
+    });
+  });
 });

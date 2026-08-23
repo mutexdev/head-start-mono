@@ -18,6 +18,13 @@ data class PairInfo(
     val memberNames: Map<String, String> = emptyMap(),
 ) {
     val isActive: Boolean get() = status == "active"
+
+    /**
+     * Only a "pending" pair can still be accepted. `!isActive` is NOT a synonym:
+     * it also matches "revoked", and offering a revoked code as a fresh invite
+     * hands the other person a code acceptPair is guaranteed to reject.
+     */
+    val isPending: Boolean get() = status == "pending"
     fun otherUid(myUid: String): String? = members.firstOrNull { it != myUid }
 
     /**

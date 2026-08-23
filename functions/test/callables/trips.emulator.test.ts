@@ -178,6 +178,9 @@ describe('trip callables (emulator)', () => {
     const arrived = (await debugPushes().get()).docs.map((d) => d.data() as any).filter((p) => p.kind === 'arrived');
     expect(arrived).toHaveLength(1);
     expect(arrived[0].toUid).toBe(DRIVER);
+    // Regression: the receiver-initiated call must not word the alert as if the
+    // RECEIVER (Sara) arrived — msg.arrived's subject is always the driver.
+    expect(arrived[0].title).toBe('Mostafi has arrived');
   });
 });
 

@@ -33,17 +33,52 @@ export function decodePolyline(encoded: string): LatLng[] {
   return pts;
 }
 
-/** Distance along the polyline from the vertex nearest `pos` to the end. */
+/**
+ * Fraction along segment a->b (clamped to [0,1]) closest to `pos`, via a local
+ * equirectangular projection. Segments this function is ever called on are at
+ * most a few km, so this planar approximation is well within GPS accuracy.
+ */
+function projectionFraction(a: LatLng, b: LatLng, pos: LatLng): number {
+  const cosLat = Math.cos(toRad(a.lat));
+  const bx = (b.lng - a.lng) * cosLat, by = b.lat - a.lat;
+  const px = (pos.lng - a.lng) * cosLat, py = pos.lat - a.lat;
+  const segLenSq = bx * bx + by * by;
+  if (segLenSq === 0) return 0;
+  const t = (px * bx + py * by) / segLenSq;
+  return Math.max(0, Math.min(1, t));
+}
+
+/**
+ * Distance along the polyline from the point on the route nearest `pos` to the
+ * end. Projects onto each SEGMENT (not just its endpoints) so a position
+ * partway along a segment gets a proportionate remaining distance rather than
+ * snapping to whichever vertex happens to be closer — on a route with few
+ * vertices (e.g. a short, mostly-straight Google Routes polyline, or the
+ * emulator's 2-vertex stub), nearest-vertex snapping collapses to 0 for the
+ * entire second half of the route, well before actual arrival.
+ */
 export function polylineRemainingMeters(line: LatLng[], pos: LatLng): number {
-  if (line.length === 0) return 0;
-  let nearest = 0, best = Infinity;
-  for (let i = 0; i < line.length; i++) {
-    const d = haversineMeters(line[i], pos);
-    if (d < best) { best = d; nearest = i; }
+  if (line.length < 2) return 0;
+
+  // suffix[i] = distance from vertex i to the end of the line.
+  const suffix = new Array<number>(line.length).fill(0);
+  for (let i = line.length - 2; i >= 0; i--) {
+    suffix[i] = suffix[i + 1] + haversineMeters(line[i], line[i + 1]);
   }
-  let sum = 0;
-  for (let i = nearest; i < line.length - 1; i++) sum += haversineMeters(line[i], line[i + 1]);
-  return sum;
+
+  let bestDist = Infinity;
+  let bestRemaining = suffix[0];
+  for (let i = 0; i < line.length - 1; i++) {
+    const a = line[i], b = line[i + 1];
+    const t = projectionFraction(a, b, pos);
+    const proj: LatLng = { lat: a.lat + t * (b.lat - a.lat), lng: a.lng + t * (b.lng - a.lng) };
+    const dist = haversineMeters(pos, proj);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestRemaining = haversineMeters(proj, b) + suffix[i + 1];
+    }
+  }
+  return bestRemaining;
 }
 
 /** Zig-zag + base64-ish varint for one polyline coordinate delta (precision 5). */

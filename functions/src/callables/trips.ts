@@ -151,8 +151,13 @@ export const endTrip = onCall(async (req) => {
   const name = await nameOf(uid);
   // ADDENDUM section G: whoever ends the trip does NOT get pushed their own action.
   const other = uid === trip.driverUid ? trip.receiverUid : trip.driverUid;
+  // msg.arrived's `driver` parameter is always about the DRIVER, regardless of
+  // who called endTrip — a receiver-initiated arrival must still read "<driver>
+  // has arrived", not "<receiver> has arrived". msg.cancelled's `by` parameter
+  // is genuinely the caller (whoever cancelled), so that one keeps `name`.
+  const driverName = reason === 'arrived' && uid !== trip.driverUid ? await nameOf(trip.driverUid) : name;
   await sendPush(
-    reason === 'arrived' ? msg.arrived(other, name, trip.spot.name) : msg.cancelled(other, name),
+    reason === 'arrived' ? msg.arrived(other, driverName, trip.spot.name) : msg.cancelled(other, name),
     { tripId },
   );
   return { ok: true };

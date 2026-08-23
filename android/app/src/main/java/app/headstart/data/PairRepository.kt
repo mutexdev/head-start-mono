@@ -57,9 +57,25 @@ class PairRepository(
     fun activePair(uid: String): Flow<PairInfo?> =
         pairsFor(uid).map { list -> list.firstOrNull { it.isActive } }
 
-    /** The invite this user created and nobody has accepted yet — drives PairInvite. */
+    /**
+     * The invite this user created and nobody has accepted yet — drives PairInvite.
+     *
+     * Must match `status == "pending"`, not `!isActive`: a revoked pair is also
+     * not active, so after an unpair this returned the OLD, dead code and the
+     * screen showed it instead of minting a fresh one. acceptPair only queries
+     * pending pairs, so that code could never be accepted by anyone.
+     */
     fun pendingInvite(uid: String): Flow<PairInfo?> =
-        pairsFor(uid).map { list -> list.firstOrNull { !it.isActive && it.createdBy == uid } }
+        pairsFor(uid).map { list -> pickPendingInvite(list, uid) }
+
+    companion object {
+        /**
+         * Pure so it can be tested without Firestore. Mirrors the iOS twin
+         * (`PairRepository.pick(from:uid:)`) — keep the two in step.
+         */
+        fun pickPendingInvite(pairs: List<PairInfo>, uid: String): PairInfo? =
+            pairs.firstOrNull { it.isPending && it.createdBy == uid }
+    }
 
     /** One pair document, live. `memberNames` lands here when the other side signs in. */
     fun pair(pairId: String): Flow<PairInfo?> =
